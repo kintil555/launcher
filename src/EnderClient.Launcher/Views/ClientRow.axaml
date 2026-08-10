@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="EnderClient.Launcher.Views.ClientRow">
+
+    <Border Background="{StaticResource SurfaceBrush}"
+            BorderBrush="{StaticResource SurfaceBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="10"
+            Padding="14,10">
+        <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Name="NameText" FontSize="14" FontWeight="Medium"/>
+                <TextBlock Name="PathText" FontSize="12" Foreground="{StaticResource MutedForegroundBrush}" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+            <Button Grid.Column="1" Name="RemoveButton" Classes="secondary" Content="Remove" VerticalAlignment="Center"/>
+        </Grid>
+    </Border>
+
+</UserControl>

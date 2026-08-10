@@ -1,0 +1,49 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="EnderClient.Launcher.App"
+             RequestedThemeVariant="Dark">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <!-- Ender Client palette: deep near-black background, violet accent -->
+            <Color x:Key="WindowColor">#0E0B12</Color>
+            <Color x:Key="BackgroundColor">#15111C</Color>
+            <Color x:Key="SurfaceColor">#1C1726</Color>
+            <Color x:Key="SurfaceBorderColor">#2A2338</Color>
+            <Color x:Key="AccentColor">#8B5CF6</Color>
+            <Color x:Key="AccentHoverColor">#A78BFA</Color>
+            <Color x:Key="AccentPressedColor">#7C3AED</Color>
+            <Color x:Key="ForegroundColor">#F2F0F7</Color>
+            <Color x:Key="MutedForegroundColor">#8B85A0</Color>
+
+            <SolidColorBrush x:Key="WindowBrush" Color="{StaticResource WindowColor}"/>
+            <SolidColorBrush x:Key="BackgroundBrush" Color="{StaticResource BackgroundColor}"/>
+            <SolidColorBrush x:Key="SurfaceBrush" Color="{StaticResource SurfaceColor}"/>
+            <SolidColorBrush x:Key="SurfaceBorderBrush" Color="{StaticResource SurfaceBorderColor}"/>
+            <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+            <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}"/>
+            <SolidColorBrush x:Key="AccentPressedBrush" Color="{StaticResource AccentPressedColor}"/>
+            <SolidColorBrush x:Key="ForegroundBrush" Color="{StaticResource ForegroundColor}"/>
+            <SolidColorBrush x:Key="MutedForegroundBrush" Color="{StaticResource MutedForegroundColor}"/>
+
+            <ResourceDictionary.MergedDictionaries>
+                <MergeResourceInclude Source="/Styles/NavButton.axaml"/>
+                <MergeResourceInclude Source="/Styles/PrimaryButton.axaml"/>
+                <MergeResourceInclude Source="/Styles/SecondaryButton.axaml"/>
+                <MergeResourceInclude Source="/Styles/TextInput.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme/>
+
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
+        </Style>
+        <Style Selector="Window">
+            <Setter Property="Background" Value="{StaticResource WindowBrush}"/>
+        </Style>
+    </Application.Styles>
+
+</Application>

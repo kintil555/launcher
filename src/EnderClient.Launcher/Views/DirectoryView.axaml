@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="EnderClient.Launcher.Views.DirectoryView">
+
+    <Grid RowDefinitions="Auto,*">
+
+        <StackPanel Grid.Row="0" Spacing="4">
+            <TextBlock Text="Directory" FontSize="22" FontWeight="Bold"/>
+            <TextBlock Text="Where Ender Client stores its settings and data." Foreground="{StaticResource MutedForegroundBrush}" FontSize="13"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" VerticalAlignment="Top" Spacing="10" Margin="0,24,0,0" MaxWidth="500">
+            <TextBlock Text="Launcher directory" FontSize="12" Foreground="{StaticResource MutedForegroundBrush}"/>
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBox Grid.Column="0" Name="DirectoryText" IsReadOnly="True" Margin="0,0,8,0"/>
+                <Button Grid.Column="1" Name="OpenFolderButton" Classes="secondary" Content="Open"/>
+            </Grid>
+
+            <Button Name="ChangeFolderButton" Classes="secondary" Content="Change directory" HorizontalAlignment="Left" Margin="0,4,0,0"/>
+            <TextBlock Name="StatusText" Foreground="{StaticResource MutedForegroundBrush}" FontSize="12"/>
+        </StackPanel>
+
+    </Grid>
+
+</UserControl>

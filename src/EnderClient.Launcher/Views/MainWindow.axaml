@@ -1,0 +1,41 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:EnderClient.Launcher.Views"
+        x:Class="EnderClient.Launcher.Views.MainWindow"
+        Title="Ender Client"
+        Width="880" Height="560"
+        MinWidth="720" MinHeight="480"
+        Background="{StaticResource WindowBrush}"
+        TransparencyLevelHint="None"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid ColumnDefinitions="200,*">
+
+        <!-- Sidebar -->
+        <Border Grid.Column="0" Background="{StaticResource BackgroundBrush}" Padding="16">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="4,4,4,28">
+                    <Ellipse Width="10" Height="10" Fill="{StaticResource AccentBrush}"/>
+                    <TextBlock Text="Ender Client" FontSize="16" FontWeight="Bold"/>
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Top" Name="NavPanel">
+                    <RadioButton Classes="nav" GroupName="Nav" Name="HomeNav" IsChecked="True" Content="Home"/>
+                    <RadioButton Classes="nav" GroupName="Nav" Name="ClientsNav" Content="Clients"/>
+                    <RadioButton Classes="nav" GroupName="Nav" Name="DirectoryNav" Content="Directory"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Content -->
+        <Border Grid.Column="1" Background="{StaticResource WindowBrush}" Padding="32">
+            <Panel>
+                <views:HomeView Name="HomePage"/>
+                <views:ClientsView Name="ClientsPage" IsVisible="False"/>
+                <views:DirectoryView Name="DirectoryPage" IsVisible="False"/>
+            </Panel>
+        </Border>
+
+    </Grid>
+
+</Window>
