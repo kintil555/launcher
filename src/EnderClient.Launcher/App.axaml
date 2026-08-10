@@ -25,18 +25,16 @@
             <SolidColorBrush x:Key="AccentPressedBrush" Color="{StaticResource AccentPressedColor}"/>
             <SolidColorBrush x:Key="ForegroundBrush" Color="{StaticResource ForegroundColor}"/>
             <SolidColorBrush x:Key="MutedForegroundBrush" Color="{StaticResource MutedForegroundColor}"/>
-
-            <ResourceDictionary.MergedDictionaries>
-                <MergeResourceInclude Source="/Styles/NavButton.axaml"/>
-                <MergeResourceInclude Source="/Styles/PrimaryButton.axaml"/>
-                <MergeResourceInclude Source="/Styles/SecondaryButton.axaml"/>
-                <MergeResourceInclude Source="/Styles/TextInput.axaml"/>
-            </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
 
     <Application.Styles>
         <FluentTheme/>
+
+        <StyleInclude Source="/Styles/NavButton.axaml"/>
+        <StyleInclude Source="/Styles/PrimaryButton.axaml"/>
+        <StyleInclude Source="/Styles/SecondaryButton.axaml"/>
+        <StyleInclude Source="/Styles/TextInput.axaml"/>
 
         <Style Selector="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource ForegroundBrush}"/>
