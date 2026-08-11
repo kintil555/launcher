@@ -25,17 +25,25 @@ public static class GameLauncher
             return;
         }
 
-        // "shell:AppsFolder\..." is a virtual shell namespace path, not a real file —
-        // Process.Start can't resolve it directly (even with UseShellExecute) because
-        // that only invokes ShellExecuteEx on the FileName itself, and there is no file
-        // at that path. explorer.exe is the component that understands shell: paths, so
-        // we hand it off as an argument, same as running it from the Start Menu.
-        Process.Start(new ProcessStartInfo
+        // Activate the UWP app via the Appx module's Invoke-CommandInDesktopPackage
+        // cmdlet — the same mechanism Flarial Launcher uses. Unlike "shell:AppsFolder"
+        // (a virtual shell path Process.Start cannot resolve on its own), this runs the
+        // app's own exe inside its app-container correctly and synchronously.
+        var exePath = Path.Combine(info.InstalledPath, info.ProcessName);
+        var command =
+            $"Invoke-CommandInDesktopPackage -PackageFamilyName '{info.PackageFamilyName}' " +
+            $"-AppId 'Game' -PreventBreakaway -Command '{exePath}'";
+
+        using (var activate = Process.Start(new ProcessStartInfo
         {
-            FileName = "explorer.exe",
-            Arguments = $"shell:AppsFolder\\{info.PackageFamilyName}!App",
-            UseShellExecute = true
-        });
+            FileName = "powershell.exe",
+            ArgumentList = { "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", command },
+            UseShellExecute = false,
+            CreateNoWindow = true
+        }))
+        {
+            activate?.WaitForExit();
+        }
 
         var process = await WaitForProcessAsync(processName, LaunchTimeout);
 
