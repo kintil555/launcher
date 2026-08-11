@@ -1,8 +1,6 @@
-using Avalonia;
+using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Input;
-using Avalonia.Media.Imaging;
-using Avalonia.Platform;
 using EnderClient.Core.Game;
 using EnderClient.Core.Models;
 using EnderClient.Launcher.Services;
@@ -15,58 +13,62 @@ public partial class HomeView : UserControl
     const double MaxYaw = 0.55;   // radians, ~31.5deg either side
     const double MaxPitch = 0.35; // radians, ~20deg either side
 
+    bool _headViewReady;
+
     public HomeView()
     {
         InitializeComponent();
 
         PopulateClients();
-        LoadSkin();
 
         ClientSelector.SelectionChanged += (_, _) => SaveSelection();
         LaunchButton.Click += async (_, _) => await LaunchAsync();
 
         PointerMoved += OnPointerMoved;
         PointerExited += (_, _) => ResetHeadPose();
+
+        var headHtmlPath = Path.Combine(AppContext.BaseDirectory, "Assets", "Web", "head.html");
+        HeadView.Source = new Uri(headHtmlPath);
     }
 
-    void LoadSkin()
+    async void OnHeadViewNavigationCompleted(object? sender, WebViewNavigationCompletedEventArgs e)
     {
-        try
-        {
-            var skinPath = SkinLocator.FindActiveSkinPath();
+        if (!e.IsSuccess) return;
 
-            HeadView.Skin = skinPath is not null
-                ? new Bitmap(skinPath)
-                : new Bitmap(AssetLoader.Open(new Uri("avares://EnderClient.Launcher/Assets/steve_default.png")));
-        }
-        catch
+        _headViewReady = true;
+
+        var skinPath = SkinLocator.FindActiveSkinPath();
+        if (skinPath is not null)
         {
-            // Corrupt or unreadable skin file — fall back to the bundled default so the
-            // head still renders instead of staying blank.
-            HeadView.Skin = new Bitmap(AssetLoader.Open(new Uri("avares://EnderClient.Launcher/Assets/steve_default.png")));
+            // file:// URI with forward slashes, as expected by the browser engine.
+            var uri = new Uri(skinPath).AbsoluteUri;
+            await HeadView.InvokeScript($"setSkin('{uri}')");
         }
     }
 
     void OnPointerMoved(object? sender, PointerEventArgs e)
     {
+        if (!_headViewReady) return;
+
         var bounds = HeadView.Bounds;
         if (bounds.Width <= 0 || bounds.Height <= 0) return;
 
         var pos = e.GetPosition(HeadView);
 
-        // Normalize to [-1, 1] relative to the head control's center, then clamp so the
-        // head only turns within a natural-looking range instead of spinning wildly.
         var nx = Math.Clamp((pos.X - bounds.Width / 2) / (bounds.Width / 2), -1, 1);
         var ny = Math.Clamp((pos.Y - bounds.Height / 2) / (bounds.Height / 2), -1, 1);
 
-        HeadView.Yaw = nx * MaxYaw;
-        HeadView.Pitch = -ny * MaxPitch;
+        var yaw = nx * MaxYaw;
+        var pitch = -ny * MaxPitch;
+
+        _ = HeadView.InvokeScript(
+            $"setYawPitch({yaw.ToString(CultureInfo.InvariantCulture)}, {pitch.ToString(CultureInfo.InvariantCulture)})");
     }
 
     void ResetHeadPose()
     {
-        HeadView.Yaw = 0;
-        HeadView.Pitch = 0;
+        if (!_headViewReady) return;
+        _ = HeadView.InvokeScript("setYawPitch(0, 0)");
     }
 
     void PopulateClients()

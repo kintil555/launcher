@@ -1,6 +1,5 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:controls="using:EnderClient.Launcher.Controls"
              x:Class="EnderClient.Launcher.Views.HomeView">
 
     <Grid RowDefinitions="Auto,Auto,*,Auto" Name="RootGrid">
@@ -15,7 +14,8 @@
             <ComboBox Name="ClientSelector" HorizontalAlignment="Stretch" PlaceholderText="Vanilla (no client)"/>
         </StackPanel>
 
-        <controls:PlayerHeadView Grid.Row="2" Name="HeadView" Width="180" Height="180"/>
+        <NativeWebView Grid.Row="2" Name="HeadView" Width="200" Height="200"
+                       NavigationCompleted="OnHeadViewNavigationCompleted"/>
 
         <StackPanel Grid.Row="3" Spacing="10" MaxWidth="420" HorizontalAlignment="Center" Margin="0,0,0,8">
             <TextBlock Name="StatusText" Foreground="{StaticResource MutedForegroundBrush}" FontSize="13" HorizontalAlignment="Center"/>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; padding: 0; overflow: hidden; background: transparent; }
+  canvas { display: block; background: transparent; }
+</style>
+</head>
+<body>
+<canvas id="skin_container"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/skinview3d/bundles/skinview3d.bundle.js"></script>
+<script>
+  // Steve's default skin (bundled as data URI so the head renders even offline /
+  // before a real skin is set) — same texture EnderClient.Launcher ships as its
+  // native-renderer fallback.
+  const DEFAULT_SKIN = "steve_default.png";
+
+  const skinViewer = new skinview3d.SkinViewer({
+    canvas: document.getElementById("skin_container"),
+    width: window.innerWidth,
+    height: window.innerHeight,
+    skin: DEFAULT_SKIN
+  });
+
+  skinViewer.background = null; // transparent, so the app's own background shows through
+  skinViewer.controls.enableZoom = false;
+  skinViewer.controls.enableRotate = false; // rotation is driven by setYawPitch from C#, not mouse-drag-on-canvas
+  skinViewer.controls.enablePan = false;
+
+  // Crop the view to just the head: zoom the camera in and aim it at head height.
+  // skinViewer.playerObject.skin.head sits near the top of the model; the player
+  // model is built around y=0 at the feet, ~16 "skin pixel units" tall total, with
+  // the head occupying roughly the top 4 units — see skinview3d's PlayerObject.
+  skinViewer.camera.position.set(0, 20, 40);
+  skinViewer.zoom = 2.2;
+
+  function resize() {
+    skinViewer.width = window.innerWidth;
+    skinViewer.height = window.innerHeight;
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  // --- Interop surface called from C# via NativeWebView.InvokeScript ---
+
+  window.setSkin = function (path) {
+    skinViewer.loadSkin(path);
+  };
+
+  // yaw/pitch in radians, matching the convention used by the native renderer this
+  // replaced: 0,0 = facing the viewer straight on.
+  window.setYawPitch = function (yaw, pitch) {
+    skinViewer.playerObject.rotation.y = yaw;
+    skinViewer.playerObject.rotation.x = pitch;
+  };
+</script>
+</body>
+</html>
