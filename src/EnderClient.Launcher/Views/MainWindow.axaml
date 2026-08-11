@@ -3,6 +3,7 @@
         xmlns:views="using:EnderClient.Launcher.Views"
         x:Class="EnderClient.Launcher.Views.MainWindow"
         Title="Ender Client"
+        Icon="/Assets/logo.png"
         Width="880" Height="560"
         MinWidth="720" MinHeight="480"
         Background="{StaticResource WindowBrush}"
@@ -15,7 +16,7 @@
         <Border Grid.Column="0" Background="{StaticResource BackgroundBrush}" Padding="16">
             <DockPanel>
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="4,4,4,28">
-                    <Ellipse Width="10" Height="10" Fill="{StaticResource AccentBrush}"/>
+                    <Image Source="/Assets/logo.png" Width="22" Height="22"/>
                     <TextBlock Text="Ender Client" FontSize="16" FontWeight="Bold"/>
                 </StackPanel>
 
