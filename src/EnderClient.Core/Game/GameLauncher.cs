@@ -25,12 +25,15 @@ public static class GameLauncher
             return;
         }
 
-        // Activate the UWP app via its App Execution Alias / AppsFolder shortcut.
-        // This is the same mechanism Windows uses for Start Menu tiles and avoids
-        // needing the full app-activation COM API surface.
+        // "shell:AppsFolder\..." is a virtual shell namespace path, not a real file —
+        // Process.Start can't resolve it directly (even with UseShellExecute) because
+        // that only invokes ShellExecuteEx on the FileName itself, and there is no file
+        // at that path. explorer.exe is the component that understands shell: paths, so
+        // we hand it off as an argument, same as running it from the Start Menu.
         Process.Start(new ProcessStartInfo
         {
-            FileName = $"shell:AppsFolder\\{info.PackageFamilyName}!App",
+            FileName = "explorer.exe",
+            Arguments = $"shell:AppsFolder\\{info.PackageFamilyName}!App",
             UseShellExecute = true
         });
 
