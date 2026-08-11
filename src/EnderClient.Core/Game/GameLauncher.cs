@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using EnderClient.Core.Exceptions;
+using EnderClient.Core.Native;
 
 namespace EnderClient.Core.Game;
 
@@ -45,28 +46,35 @@ public static class GameLauncher
             activate?.WaitForExit();
         }
 
-        var process = await WaitForProcessAsync(processName, LaunchTimeout);
+        var process = await WaitForGameWindowAsync(processName, LaunchTimeout);
 
         if (clientDllPath is not null)
             Injector.Inject(process.Id, clientDllPath);
     }
 
-    static async Task<Process> WaitForProcessAsync(string processName, TimeSpan timeout)
+    /// <summary>
+    /// Waits until the game process exists AND its main window (class "Bedrock", same as
+    /// Minecraft's own window class) is up. A fixed delay after "process exists" is not
+    /// enough — the UWP app container can take a variable amount of time to finish
+    /// initializing, and injecting too early can silently fail. Polling for the actual
+    /// window is what Flarial Launcher does, and it's the reliable signal.
+    /// </summary>
+    static async Task<Process> WaitForGameWindowAsync(string processName, TimeSpan timeout)
     {
         var deadline = DateTime.UtcNow + timeout;
 
         while (DateTime.UtcNow < deadline)
         {
-            var process = Process.GetProcessesByName(processName).FirstOrDefault();
-            if (process is not null)
+            var hwnd = NativeMethods.FindWindow("Bedrock", null);
+            if (hwnd != IntPtr.Zero)
             {
-                // Give the process a brief moment to finish its own module initialization
-                // before we attempt to inject, to avoid racing its own DLL loads.
-                await Task.Delay(1500);
-                return process;
+                NativeMethods.GetWindowThreadProcessId(hwnd, out var pid);
+                var process = Process.GetProcessesByName(processName).FirstOrDefault(p => p.Id == (int)pid);
+                if (process is not null)
+                    return process;
             }
 
-            await Task.Delay(250);
+            await Task.Delay(200);
         }
 
         throw new MinecraftLaunchTimeoutException();
