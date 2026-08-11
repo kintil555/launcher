@@ -78,9 +78,12 @@ public sealed class PlayerHeadView : Control
             var v = vertices[i];
 
             // Center the cube on its own middle (model Y spans [0, 0.5]) before rotating.
+            // Z is negated: the mesh's +Z face (in Blockbench's export axes) carries the
+            // *back*-of-head UVs, not the face UVs, so flipping Z here makes the textured
+            // face point at the viewer by default instead of the back of the head.
             var x = v.X;
             var y = v.Y - 0.25f;
-            var z = v.Z;
+            var z = -v.Z;
 
             // Yaw (around Y axis), then pitch (around X axis).
             var x1 = x * cosY + z * sinY;
