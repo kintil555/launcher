@@ -104,6 +104,8 @@ async function init() {
     });
   } catch (err) {
     console.error("init() failed:", err);
+    const statusEl = document.getElementById("status-text");
+    if (statusEl) statusEl.textContent = "Startup error: " + (err?.message || err);
   }
 }
 
@@ -271,6 +273,9 @@ function initHeadRenderer() {
   headCamera.position.set(0, 0, 8);
 
   headRenderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  if (!headRenderer.getContext()) {
+    console.error("headRenderer: WebGL context creation failed");
+  }
   headRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
   const ambient = new THREE.AmbientLight(0xffffff, 0.9);
@@ -305,7 +310,11 @@ function initHeadRenderer() {
       requestAnimationFrame(resizeHeadRenderer);
     },
     undefined,
-    (err) => console.error("Failed to load head model:", err)
+    (err) => {
+      console.error("Failed to load head model:", err);
+      const statusEl = document.getElementById("status-text");
+      if (statusEl) statusEl.textContent = "Head model failed to load: " + (err?.message || err);
+    }
   );
 
   resizeHeadRenderer();
