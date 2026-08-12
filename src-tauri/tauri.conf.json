@@ -11,8 +11,8 @@
     "windows": [
       {
         "title": "Ender Client",
-        "width": 880,
-        "height": 560,
+        "width": 1040,
+        "height": 660,
         "resizable": false,
         "maximizable": false,
         "center": true,

@@ -1,34 +1,67 @@
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+
 const { invoke } = window.__TAURI__.core;
 const { open: openDialog } = window.__TAURI__.dialog;
 const { getCurrentWindow } = window.__TAURI__.window;
 
-const VANILLA_OPTION = "__vanilla__";
 const MAX_YAW = 0.55;   // radians, ~31.5deg either side
 const MAX_PITCH = 0.35; // radians, ~20deg either side
+const TRACK_SMOOTHING = 0.12; // lerp factor per animation frame (lower = smoother/slower)
 const MAX_CLIENTS = 2;
 
 const ACCENT_PRESETS = ["#8B5CF6", "#22C55E", "#3B82F6", "#F97316", "#EC4899", "#EAB308"];
 
 let settings = null;
-let skinViewer = null;
+
+// Body-mode viewer (skinview3d)
+let bodyViewer = null;
+
+// Head-mode viewer (Three.js + glTF)
+let headScene = null;
+let headCamera = null;
+let headRenderer = null;
+let headModelRoot = null;
+let headMaterial = null;
+
+// Shared pointer-tracking state, smoothed every animation frame regardless
+// of which viewer is active.
+let targetYaw = 0;
+let targetPitch = 0;
+let currentYaw = 0;
+let currentPitch = 0;
+
 let currentSkinSrc = null;
 
 // --- Window chrome (custom titlebar) -------------------------------------
 
 const appWindow = getCurrentWindow();
 
-document.getElementById("minimize-button").addEventListener("click", () => appWindow.minimize());
-document.getElementById("close-button").addEventListener("click", () => appWindow.close());
+document.getElementById("minimize-button").addEventListener("click", () => {
+  appWindow.minimize().catch((err) => console.error("minimize failed", err));
+});
+
+document.getElementById("close-button").addEventListener("click", () => {
+  appWindow.close().catch((err) => console.error("close failed", err));
+});
 
 // --- Navigation -------------------------------------------------------
 
 function showPage(pageName) {
   document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"));
-  document.getElementById(`page-${pageName}`).classList.remove("active"); // no-op safety
   document.getElementById(`page-${pageName}`).classList.add("active");
 
   document.getElementById("home-nav-button").classList.toggle("active", pageName === "home");
   document.getElementById("settings-nav-button").classList.toggle("active", pageName === "settings");
+
+  // The canvas has zero size while its page is hidden (display: none), so any
+  // renderer sized during that time ends up 0x0. Resize once the page is visible.
+  if (pageName === "home") {
+    requestAnimationFrame(() => {
+      resizeHeadRenderer();
+      resizeBodyViewer();
+    });
+  }
 }
 
 document.getElementById("home-nav-button").addEventListener("click", () => showPage("home"));
@@ -40,7 +73,10 @@ async function init() {
   settings = await invoke("get_settings");
 
   applyAppearance();
-  initHeadViewer();
+  initHeadRenderer();
+  initBodyViewer();
+  setActiveModelView(settings.model_view, { skipSave: true });
+
   renderClientSelector();
   renderColorSwatches();
   renderFontSelector();
@@ -49,6 +85,13 @@ async function init() {
   renderDirectory();
 
   await loadActiveSkin();
+
+  startTrackingLoop();
+
+  window.addEventListener("resize", () => {
+    resizeHeadRenderer();
+    resizeBodyViewer();
+  });
 }
 
 // Tauri serves local files through a custom protocol; a raw file path won't
@@ -60,7 +103,9 @@ function convertFileSrc(path) {
 async function loadActiveSkin() {
   const skinPath = await invoke("find_active_skin_path");
   currentSkinSrc = skinPath ? convertFileSrc(skinPath) : "assets/steve_default.png";
-  skinViewer.loadSkin(currentSkinSrc);
+
+  if (bodyViewer) bodyViewer.loadSkin(currentSkinSrc);
+  applySkinToHeadModel(currentSkinSrc);
 }
 
 // --- Appearance -----------------------------------------------------------
@@ -129,66 +174,174 @@ function renderModelToggle() {
     btn.addEventListener("click", async () => {
       if (btn.dataset.value === settings.model_view) return;
 
-      settings.model_view = btn.dataset.value;
       buttons.forEach((b) => b.classList.toggle("active", b === btn));
-
+      setActiveModelView(btn.dataset.value);
       await saveAppearance();
-      updateModelViewMode();
     });
   });
 }
 
-// --- Home page: model viewer ---------------------------------------------
+// Switches which viewer is mounted (head glTF vs. full-body skinview3d).
+// Persisting the choice is handled by the caller via saveAppearance().
+function setActiveModelView(view, { skipSave = false } = {}) {
+  settings.model_view = view;
+  void skipSave; // kept for call-site clarity; persistence happens in the caller
 
-function initHeadViewer() {
-  const canvas = document.getElementById("head-canvas");
+  const headCanvas = document.getElementById("head-canvas");
+  const bodyCanvas = document.getElementById("body-canvas");
 
-  skinViewer = new skinview3d.SkinViewer({
-    canvas,
-    width: 220,
-    height: 220,
-    skin: "assets/steve_default.png",
-  });
+  if (view === "body") {
+    headCanvas.style.display = "none";
+    bodyCanvas.style.display = "block";
+    resizeBodyViewer();
+  } else {
+    bodyCanvas.style.display = "none";
+    headCanvas.style.display = "block";
+    resizeHeadRenderer();
+  }
+}
 
-  skinViewer.background = null;
-  skinViewer.controls.enableZoom = false;
-  skinViewer.controls.enableRotate = false;
-  skinViewer.controls.enablePan = false;
+// --- Home page: pointer tracking (shared by both viewers) -----------------
 
-  updateModelViewMode();
-
+function startTrackingLoop() {
   const stage = document.querySelector(".model-stage");
 
   stage.addEventListener("pointermove", (e) => {
-    const rect = canvas.getBoundingClientRect();
+    const rect = stage.getBoundingClientRect();
     const nx = Math.max(-1, Math.min(1, (e.clientX - rect.left - rect.width / 2) / (rect.width / 2)));
     const ny = Math.max(-1, Math.min(1, (e.clientY - rect.top - rect.height / 2) / (rect.height / 2)));
 
-    skinViewer.playerObject.rotation.y = nx * MAX_YAW;
-    skinViewer.playerObject.rotation.x = -ny * MAX_PITCH;
+    targetYaw = nx * MAX_YAW;
+    targetPitch = -ny * MAX_PITCH;
   });
 
   stage.addEventListener("pointerleave", () => {
-    skinViewer.playerObject.rotation.y = 0;
-    skinViewer.playerObject.rotation.x = 0;
+    targetYaw = 0;
+    targetPitch = 0;
+  });
+
+  function tick() {
+    // Exponential smoothing towards the pointer target — gives the head a
+    // soft, slightly lagged follow instead of snapping straight to the cursor.
+    currentYaw += (targetYaw - currentYaw) * TRACK_SMOOTHING;
+    currentPitch += (targetPitch - currentPitch) * TRACK_SMOOTHING;
+
+    if (headModelRoot) {
+      headModelRoot.rotation.y = currentYaw;
+      headModelRoot.rotation.x = currentPitch;
+      headRenderer.render(headScene, headCamera);
+    }
+
+    if (bodyViewer && document.getElementById("body-canvas").style.display !== "none") {
+      bodyViewer.playerObject.rotation.y = currentYaw;
+      bodyViewer.playerObject.rotation.x = currentPitch;
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  requestAnimationFrame(tick);
+}
+
+// --- Home page: head viewer (Three.js + glTF) ------------------------------
+
+function initHeadRenderer() {
+  const canvas = document.getElementById("head-canvas");
+
+  headScene = new THREE.Scene();
+  headCamera = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+  headCamera.position.set(0, 0, 8);
+
+  headRenderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  headRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+  const ambient = new THREE.AmbientLight(0xffffff, 0.9);
+  const directional = new THREE.DirectionalLight(0xffffff, 0.6);
+  directional.position.set(2, 3, 4);
+  headScene.add(ambient, directional);
+
+  const loader = new GLTFLoader();
+  loader.load(
+    "assets/models/head.gltf",
+    (gltf) => {
+      headModelRoot = gltf.scene;
+      headScene.add(headModelRoot);
+
+      // Grab the material off the first mesh so a skin swap can update its
+      // texture later (both the Head and Hat Layer meshes share one material).
+      headModelRoot.traverse((obj) => {
+        if (obj.isMesh && !headMaterial) {
+          headMaterial = obj.material;
+        }
+      });
+
+      if (currentSkinSrc) applySkinToHeadModel(currentSkinSrc);
+      resizeHeadRenderer();
+    },
+    undefined,
+    (err) => console.error("Failed to load head model:", err)
+  );
+
+  resizeHeadRenderer();
+}
+
+function resizeHeadRenderer() {
+  if (!headRenderer) return;
+
+  const canvas = document.getElementById("head-canvas");
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return;
+
+  headRenderer.setSize(rect.width, rect.height, false);
+  headCamera.aspect = rect.width / rect.height;
+  headCamera.updateProjectionMatrix();
+
+  if (headScene) headRenderer.render(headScene, headCamera);
+}
+
+function applySkinToHeadModel(skinSrc) {
+  if (!headMaterial) return;
+
+  new THREE.TextureLoader().load(skinSrc, (texture) => {
+    texture.magFilter = THREE.NearestFilter;
+    texture.minFilter = THREE.NearestFilter;
+    texture.colorSpace = THREE.SRGBColorSpace;
+
+    headMaterial.map = texture;
+    headMaterial.needsUpdate = true;
   });
 }
 
-// Switches between a cropped head-only view and a full-body view.
-function updateModelViewMode() {
-  const canvas = document.getElementById("head-canvas");
+// --- Home page: body viewer (skinview3d) -----------------------------------
 
-  if (settings.model_view === "body") {
-    canvas.classList.add("body-view");
-    skinViewer.setSize(200, 380);
-    skinViewer.camera.position.set(0, 0, 60);
-    skinViewer.zoom = 0.9;
-  } else {
-    canvas.classList.remove("body-view");
-    skinViewer.setSize(220, 220);
-    skinViewer.camera.position.set(0, 20, 40);
-    skinViewer.zoom = 2.2;
-  }
+function initBodyViewer() {
+  const canvas = document.getElementById("body-canvas");
+
+  bodyViewer = new skinview3d.SkinViewer({
+    canvas,
+    width: 300,
+    height: 500,
+    skin: "assets/steve_default.png",
+  });
+
+  bodyViewer.background = null;
+  bodyViewer.controls.enableZoom = false;
+  bodyViewer.controls.enableRotate = false;
+  bodyViewer.controls.enablePan = false;
+  bodyViewer.camera.position.set(0, 0, 60);
+  bodyViewer.zoom = 0.9;
+
+  resizeBodyViewer();
+}
+
+function resizeBodyViewer() {
+  if (!bodyViewer) return;
+
+  const canvas = document.getElementById("body-canvas");
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return;
+
+  bodyViewer.setSize(rect.width, rect.height);
 }
 
 // --- Home page: client selector (checklist dropdown, max 2) --------------

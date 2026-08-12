@@ -58,7 +58,7 @@ fn default_accent_color() -> String {
 }
 
 fn default_font_family() -> String {
-    "Segoe UI".to_string()
+    "Mojangles".to_string()
 }
 
 fn default_model_view() -> ModelView {

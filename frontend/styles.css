@@ -1,3 +1,17 @@
+@font-face {
+  font-family: "Mojangles";
+  src: url("assets/fonts/Mojang-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mojangles";
+  src: url("assets/fonts/Mojang-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
+
 :root {
   --window-bg: #0E0B12;
   --bg: #15111C;
@@ -9,7 +23,7 @@
   --accent-soft: rgba(139, 92, 246, 0.18);
   --fg: #F2F0F7;
   --muted-fg: #8B85A0;
-  --app-font: "Segoe UI";
+  --app-font: "Mojangles";
 }
 
 * { box-sizing: border-box; }
@@ -219,7 +233,8 @@ html, body {
 
 /* Home page */
 #page-home {
-  padding: 24px 32px 28px 32px;
+  padding: 0 24px 24px 24px;
+  position: relative;
 }
 
 .model-stage {
@@ -228,16 +243,19 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  position: relative;
 }
 
-#head-canvas {
-  width: 220px;
-  height: 220px;
-}
-
-#head-canvas.body-view {
-  width: 200px;
-  height: 380px;
+#head-canvas,
+#body-canvas {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  position: absolute;
+  inset: 0;
 }
 
 .launch-row {
@@ -247,6 +265,8 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  position: relative;
+  z-index: 2;
 }
 
 .status-text {
