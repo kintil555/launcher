@@ -89,6 +89,15 @@ async function init() {
 
     startTrackingLoop();
 
+    // Same zero-size guard as showPage(): on first paint the stage may not
+    // have its final layout size yet, so the initial renderer size (set
+    // inside initHeadRenderer/initBodyViewer) can end up 0x0 and render
+    // nothing. Force a resize once the frame has settled.
+    requestAnimationFrame(() => {
+      resizeHeadRenderer();
+      resizeBodyViewer();
+    });
+
     window.addEventListener("resize", () => {
       resizeHeadRenderer();
       resizeBodyViewer();
@@ -293,6 +302,7 @@ function initHeadRenderer() {
 
       if (currentSkinSrc) applySkinToHeadModel(currentSkinSrc);
       resizeHeadRenderer();
+      requestAnimationFrame(resizeHeadRenderer);
     },
     undefined,
     (err) => console.error("Failed to load head model:", err)
