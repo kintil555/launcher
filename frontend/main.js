@@ -208,19 +208,24 @@ function setActiveModelView(view, { skipSave = false } = {}) {
 // --- Home page: pointer tracking (shared by both viewers) -----------------
 
 function startTrackingLoop() {
-  // Track relative to the visible model canvas, not the full stage — the
+  // Track relative to whichever model canvas is currently visible — the
   // stage fills the whole content area, which made the head follow the
   // mouse across the entire window instead of just around the model.
-  const stage = document.getElementById("head-canvas");
+  const headCanvas = document.getElementById("head-canvas");
+  const bodyCanvas = document.getElementById("body-canvas");
 
-  stage.addEventListener("pointermove", (e) => {
+  function onPointerMove(e) {
+    const stage = headCanvas.style.display !== "none" ? headCanvas : bodyCanvas;
     const rect = stage.getBoundingClientRect();
     const nx = Math.max(-1, Math.min(1, (e.clientX - rect.left - rect.width / 2) / (rect.width / 2)));
     const ny = Math.max(-1, Math.min(1, (e.clientY - rect.top - rect.height / 2) / (rect.height / 2)));
 
     targetYaw = nx * MAX_YAW;
     targetPitch = -ny * MAX_PITCH;
-  });
+  }
+
+  headCanvas.addEventListener("pointermove", onPointerMove);
+  bodyCanvas.addEventListener("pointermove", onPointerMove);
 
   // Freeze at the last tracked pose when the pointer leaves the stage,
   // rather than resetting to center.
@@ -239,7 +244,6 @@ function startTrackingLoop() {
 
     if (bodyViewer && document.getElementById("body-canvas").style.display !== "none") {
       bodyViewer.playerObject.rotation.y = currentYaw;
-      bodyViewer.playerObject.rotation.x = currentPitch;
     }
 
     requestAnimationFrame(tick);
