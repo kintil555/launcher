@@ -6,6 +6,7 @@ use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
 use windows::Win32::System::Memory::{
     VirtualAllocEx, VirtualFreeEx, MEM_COMMIT, MEM_RELEASE, MEM_RESERVE, PAGE_READWRITE,
 };
+use windows::Win32::Foundation::HANDLE;
 use windows::Win32::System::Threading::{
     CreateRemoteThread, OpenProcess, WaitForSingleObject, INFINITE, LPTHREAD_START_ROUTINE,
     PROCESS_ALL_ACCESS,
@@ -60,7 +61,7 @@ pub fn inject(process_id: u32, dll_path: &str) -> Result<(), String> {
             return Err("Failed to write the DLL path into the target process.".to_string());
         }
 
-        let thread = CreateRemoteThread(
+        let thread: windows::core::Result<HANDLE> = CreateRemoteThread(
             process,
             None,
             0,
@@ -70,7 +71,7 @@ pub fn inject(process_id: u32, dll_path: &str) -> Result<(), String> {
             None,
         );
 
-        let thread = match thread {
+        let thread: HANDLE = match thread {
             Ok(h) => h,
             Err(_) => {
                 let _ = VirtualFreeEx(process, remote_buffer, 0, MEM_RELEASE);
@@ -79,7 +80,7 @@ pub fn inject(process_id: u32, dll_path: &str) -> Result<(), String> {
             }
         };
 
-        WaitForSingleObject(thread, INFINITE);
+        let _ = WaitForSingleObject(thread, INFINITE);
 
         let _ = CloseHandle(thread);
         let _ = VirtualFreeEx(process, remote_buffer, 0, MEM_RELEASE);
