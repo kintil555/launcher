@@ -208,7 +208,10 @@ function setActiveModelView(view, { skipSave = false } = {}) {
 // --- Home page: pointer tracking (shared by both viewers) -----------------
 
 function startTrackingLoop() {
-  const stage = document.querySelector(".model-stage");
+  // Track relative to the visible model canvas, not the full stage — the
+  // stage fills the whole content area, which made the head follow the
+  // mouse across the entire window instead of just around the model.
+  const stage = document.getElementById("head-canvas");
 
   stage.addEventListener("pointermove", (e) => {
     const rect = stage.getBoundingClientRect();
@@ -219,10 +222,8 @@ function startTrackingLoop() {
     targetPitch = -ny * MAX_PITCH;
   });
 
-  stage.addEventListener("pointerleave", () => {
-    targetYaw = 0;
-    targetPitch = 0;
-  });
+  // Freeze at the last tracked pose when the pointer leaves the stage,
+  // rather than resetting to center.
 
   function tick() {
     // Exponential smoothing towards the pointer target — gives the head a
@@ -278,6 +279,13 @@ function initHeadRenderer() {
           headMaterial = obj.material;
         }
       });
+
+      // Re-center the model on its own geometric center. The source gltf's
+      // pivot isn't guaranteed to be at the mesh's visual center, which is
+      // what made the head appear off-center in the stage.
+      const box = new THREE.Box3().setFromObject(headModelRoot);
+      const center = box.getCenter(new THREE.Vector3());
+      headModelRoot.position.sub(center);
 
       if (currentSkinSrc) applySkinToHeadModel(currentSkinSrc);
       resizeHeadRenderer();

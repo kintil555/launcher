@@ -309,13 +309,19 @@ html, body {
 
 #head-canvas,
 #body-canvas {
-  width: 100%;
-  height: 100%;
+  /* Centered square so the camera aspect stays 1:1 — a canvas stretched to
+     the full rectangular stage skewed the perspective and made the model
+     look off-center. */
+  width: min(100%, 100%);
+  height: min(100%, 100%);
+  aspect-ratio: 1 / 1;
   max-width: 100%;
   max-height: 100%;
   display: block;
   position: absolute;
-  inset: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   z-index: 1;
 }
 
