@@ -1,5 +1,6 @@
-bin/
-obj/
-publish/
-*.user
+/target/
+/src-tauri/target/
+node_modules/
+*.log
 .vs/
+gen/schemas/

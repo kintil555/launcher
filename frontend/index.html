@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Ender Client</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="shell">
+
+    <nav class="sidebar">
+      <div class="brand">
+        <img src="assets/logo.png" alt="" class="brand-logo">
+        <span>Ender Client</span>
+      </div>
+
+      <button class="nav-item active" data-page="home">Home</button>
+      <button class="nav-item" data-page="clients">Clients</button>
+      <button class="nav-item" data-page="directory">Directory</button>
+    </nav>
+
+    <main class="content">
+
+      <section id="page-home" class="page active">
+        <header class="page-header">
+          <h1>Home</h1>
+          <p>Select a client and launch Minecraft.</p>
+        </header>
+
+        <div class="client-select-row">
+          <label for="client-selector">Client</label>
+          <select id="client-selector"></select>
+        </div>
+
+        <div class="head-stage">
+          <canvas id="head-canvas"></canvas>
+        </div>
+
+        <div class="launch-row">
+          <p id="status-text" class="status-text"></p>
+          <button id="launch-button" class="btn-primary">Launch</button>
+        </div>
+      </section>
+
+      <section id="page-clients" class="page">
+        <header class="page-header">
+          <h1>Clients</h1>
+          <p>Add a client DLL (e.g. Latite.dll) to inject on launch.</p>
+        </header>
+
+        <button id="add-client-button" class="btn-secondary add-client-btn">+ Add client</button>
+
+        <div id="client-list" class="client-list"></div>
+      </section>
+
+      <section id="page-directory" class="page">
+        <header class="page-header">
+          <h1>Directory</h1>
+          <p>Where Ender Client stores its settings and data.</p>
+        </header>
+
+        <div class="directory-panel">
+          <label for="directory-text">Launcher directory</label>
+          <div class="directory-row">
+            <input id="directory-text" type="text" readonly>
+            <button id="open-folder-button" class="btn-secondary">Open</button>
+          </div>
+          <button id="change-folder-button" class="btn-secondary change-dir-btn">Change directory</button>
+          <p id="directory-status" class="status-text"></p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/skinview3d/bundles/skinview3d.bundle.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
