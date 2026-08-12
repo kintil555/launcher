@@ -10,9 +10,9 @@ use crate::minecraft::{self, MinecraftPackageInfo};
 const LAUNCH_TIMEOUT: Duration = Duration::from_secs(30);
 const POLL_INTERVAL: Duration = Duration::from_millis(200);
 
-/// Launches Minecraft Bedrock and, if `client_dll_path` is provided, injects it once the
-/// game window is actually up.
-pub fn launch(client_dll_path: Option<&str>) -> Result<(), String> {
+/// Launches Minecraft Bedrock and injects each of `client_dll_paths` (in order) once the
+/// game window is actually up. Multiple entries let two clients be stacked together.
+pub fn launch(client_dll_paths: &[String]) -> Result<(), String> {
     let info = minecraft::locate()?;
 
     let process_name_no_ext = info
@@ -22,7 +22,7 @@ pub fn launch(client_dll_path: Option<&str>) -> Result<(), String> {
 
     // Already running? Just inject / do nothing further instead of relaunching.
     if let Some(pid) = find_window_pid() {
-        if let Some(dll) = client_dll_path {
+        for dll in client_dll_paths {
             injector::inject(pid, dll)?;
         }
         return Ok(());
@@ -35,7 +35,7 @@ pub fn launch(client_dll_path: Option<&str>) -> Result<(), String> {
 
     let _ = process_name_no_ext; // kept for parity with the locator's process_name field
 
-    if let Some(dll) = client_dll_path {
+    for dll in client_dll_paths {
         injector::inject(pid, dll)?;
     }
 

@@ -16,13 +16,28 @@ impl ClientEntry {
     }
 }
 
+/// Which part of the player model the home screen renders.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ModelView {
+    Head,
+    Body,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {
     pub launcher_directory: String,
     #[serde(default)]
     pub clients: Vec<ClientEntry>,
+    /// Up to two client names, injected together in this order.
     #[serde(default)]
-    pub selected_client_name: Option<String>,
+    pub selected_client_names: Vec<String>,
+    #[serde(default = "default_accent_color")]
+    pub accent_color: String,
+    #[serde(default = "default_font_family")]
+    pub font_family: String,
+    #[serde(default = "default_model_view")]
+    pub model_view: ModelView,
 }
 
 impl Default for AppSettings {
@@ -30,9 +45,24 @@ impl Default for AppSettings {
         Self {
             launcher_directory: default_launcher_directory(),
             clients: Vec::new(),
-            selected_client_name: None,
+            selected_client_names: Vec::new(),
+            accent_color: default_accent_color(),
+            font_family: default_font_family(),
+            model_view: default_model_view(),
         }
     }
+}
+
+fn default_accent_color() -> String {
+    "#8B5CF6".to_string()
+}
+
+fn default_font_family() -> String {
+    "Segoe UI".to_string()
+}
+
+fn default_model_view() -> ModelView {
+    ModelView::Head
 }
 
 pub fn default_launcher_directory() -> String {

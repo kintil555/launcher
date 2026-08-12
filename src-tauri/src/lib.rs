@@ -3,7 +3,7 @@ mod launcher;
 mod minecraft;
 mod settings;
 
-use settings::{AppSettings, ClientEntry};
+use settings::{AppSettings, ClientEntry, ModelView};
 use std::sync::Mutex;
 use tauri::State;
 
@@ -45,17 +45,36 @@ fn add_client(name: String, dll_path: String, state: State<AppState>) -> Result<
 fn remove_client(name: String, state: State<AppState>) -> Result<AppSettings, String> {
     let mut settings = state.settings.lock().unwrap();
     settings.clients.retain(|c| c.name != name);
-    if settings.selected_client_name.as_deref() == Some(name.as_str()) {
-        settings.selected_client_name = None;
+    settings.selected_client_names.retain(|n| n != &name);
+    settings::save(&settings).map_err(|e| e.to_string())?;
+    Ok(settings.clone())
+}
+
+/// Sets the active client selection. At most two clients can be stacked together;
+/// anything beyond that is rejected rather than silently truncated.
+#[tauri::command]
+fn set_selected_clients(names: Vec<String>, state: State<AppState>) -> Result<AppSettings, String> {
+    if names.len() > 2 {
+        return Err("At most two clients can be selected at once.".to_string());
     }
+
+    let mut settings = state.settings.lock().unwrap();
+    settings.selected_client_names = names;
     settings::save(&settings).map_err(|e| e.to_string())?;
     Ok(settings.clone())
 }
 
 #[tauri::command]
-fn set_selected_client(name: Option<String>, state: State<AppState>) -> Result<AppSettings, String> {
+fn update_appearance(
+    accent_color: String,
+    font_family: String,
+    model_view: ModelView,
+    state: State<AppState>,
+) -> Result<AppSettings, String> {
     let mut settings = state.settings.lock().unwrap();
-    settings.selected_client_name = name;
+    settings.accent_color = accent_color;
+    settings.font_family = font_family;
+    settings.model_view = model_view;
     settings::save(&settings).map_err(|e| e.to_string())?;
     Ok(settings.clone())
 }
@@ -76,8 +95,8 @@ fn find_active_skin_path() -> Option<String> {
 }
 
 #[tauri::command]
-fn launch_minecraft(client_dll_path: Option<String>) -> Result<(), String> {
-    launcher::launch(client_dll_path.as_deref())
+fn launch_minecraft(client_dll_paths: Vec<String>) -> Result<(), String> {
+    launcher::launch(&client_dll_paths)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -94,7 +113,8 @@ pub fn run() {
             set_launcher_directory,
             add_client,
             remove_client,
-            set_selected_client,
+            set_selected_clients,
+            update_appearance,
             open_directory,
             find_active_skin_path,
             launch_minecraft,
