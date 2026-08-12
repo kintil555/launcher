@@ -51,6 +51,20 @@
 
       <section id="page-home" class="page active">
         <div class="model-stage">
+          <div class="stage-background" aria-hidden="true">
+            <span class="bg-square sq-1"></span>
+            <span class="bg-square sq-2 pulse"></span>
+            <span class="bg-square sq-3 spin"></span>
+            <span class="bg-square sq-4"></span>
+            <span class="bg-square sq-5 filled"></span>
+            <span class="bg-square sq-6 spin"></span>
+            <span class="bg-square sq-7"></span>
+            <span class="bg-square sq-8 pulse filled"></span>
+            <span class="bg-square sq-9 pulse"></span>
+            <span class="bg-square sq-10 filled"></span>
+            <span class="bg-square sq-11 spin"></span>
+            <span class="bg-square sq-12"></span>
+          </div>
           <canvas id="head-canvas"></canvas>
           <canvas id="body-canvas" style="display: none;"></canvas>
         </div>
@@ -117,6 +131,13 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/skinview3d/bundles/skinview3d.bundle.js"></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./assets/vendor/three/build/three.module.js"
+      }
+    }
+  </script>
   <script type="module" src="main.js"></script>
 </body>
 </html>

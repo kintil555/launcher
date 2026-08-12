@@ -1,5 +1,5 @@
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js";
+import * as THREE from "three";
+import { GLTFLoader } from "./assets/vendor/three/loaders/GLTFLoader.js";
 
 const { invoke } = window.__TAURI__.core;
 const { open: openDialog } = window.__TAURI__.dialog;
@@ -70,28 +70,32 @@ document.getElementById("settings-nav-button").addEventListener("click", () => s
 // --- Init ---------------------------------------------------------------
 
 async function init() {
-  settings = await invoke("get_settings");
+  try {
+    settings = await invoke("get_settings");
 
-  applyAppearance();
-  initHeadRenderer();
-  initBodyViewer();
-  setActiveModelView(settings.model_view, { skipSave: true });
+    applyAppearance();
+    initHeadRenderer();
+    initBodyViewer();
+    setActiveModelView(settings.model_view, { skipSave: true });
 
-  renderClientSelector();
-  renderColorSwatches();
-  renderFontSelector();
-  renderModelToggle();
-  renderClientList();
-  renderDirectory();
+    renderClientSelector();
+    renderColorSwatches();
+    renderFontSelector();
+    renderModelToggle();
+    renderClientList();
+    renderDirectory();
 
-  await loadActiveSkin();
+    await loadActiveSkin();
 
-  startTrackingLoop();
+    startTrackingLoop();
 
-  window.addEventListener("resize", () => {
-    resizeHeadRenderer();
-    resizeBodyViewer();
-  });
+    window.addEventListener("resize", () => {
+      resizeHeadRenderer();
+      resizeBodyViewer();
+    });
+  } catch (err) {
+    console.error("init() failed:", err);
+  }
 }
 
 // Tauri serves local files through a custom protocol; a raw file path won't
