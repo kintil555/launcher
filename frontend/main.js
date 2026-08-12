@@ -89,6 +89,9 @@ async function init() {
 
     startTrackingLoop();
 
+    const chooseBtn = document.getElementById("choose-skin-btn");
+    if (chooseBtn) chooseBtn.addEventListener("click", chooseSkinManually);
+
     // Same zero-size guard as showPage(): on first paint the stage may not
     // have its final layout size yet, so the initial renderer size (set
     // inside initHeadRenderer/initBodyViewer) can end up 0x0 and render
@@ -117,10 +120,35 @@ function convertFileSrc(path) {
 
 async function loadActiveSkin() {
   const skinPath = await invoke("find_active_skin_path");
-  currentSkinSrc = skinPath ? convertFileSrc(skinPath) : "assets/steve_default.png";
+  const chooseBtn = document.getElementById("choose-skin-btn");
+
+  if (skinPath) {
+    currentSkinSrc = convertFileSrc(skinPath);
+    if (chooseBtn) chooseBtn.style.display = "none";
+  } else {
+    // custom_skins folder missing/empty/undetected — fall back to Steve
+    // and let the user manually pick a skin file instead of guessing.
+    currentSkinSrc = "assets/steve_default.png";
+    if (chooseBtn) chooseBtn.style.display = "block";
+  }
 
   if (bodyViewer) bodyViewer.loadSkin(currentSkinSrc);
   applySkinToHeadModel(currentSkinSrc);
+}
+
+async function chooseSkinManually() {
+  const selected = await window.__TAURI__.dialog.open({
+    multiple: false,
+    filters: [{ name: "Minecraft Skin", extensions: ["png"] }],
+  });
+  if (!selected) return;
+
+  currentSkinSrc = convertFileSrc(selected);
+  if (bodyViewer) bodyViewer.loadSkin(currentSkinSrc);
+  applySkinToHeadModel(currentSkinSrc);
+
+  const chooseBtn = document.getElementById("choose-skin-btn");
+  if (chooseBtn) chooseBtn.style.display = "none";
 }
 
 // --- Appearance -----------------------------------------------------------
@@ -305,6 +333,16 @@ function initHeadRenderer() {
       const center = box.getCenter(new THREE.Vector3());
       headModelRoot.position.sub(center);
 
+      // Fit the camera distance to the model's actual size instead of a
+      // fixed z, since a hardcoded distance only looked right for the old
+      // model's scale and made this smaller model render tiny.
+      const sphere = box.getBoundingSphere(new THREE.Sphere());
+      const fitDistance = (sphere.radius / Math.sin((headCamera.fov * Math.PI) / 360)) * 1.15;
+      headCamera.position.set(0, 0, fitDistance);
+      headCamera.near = fitDistance / 100;
+      headCamera.far = fitDistance * 100;
+      headCamera.updateProjectionMatrix();
+
       if (currentSkinSrc) applySkinToHeadModel(currentSkinSrc);
       resizeHeadRenderer();
       requestAnimationFrame(resizeHeadRenderer);
@@ -338,6 +376,7 @@ function applySkinToHeadModel(skinSrc) {
   if (!headMaterial) return;
 
   new THREE.TextureLoader().load(skinSrc, (texture) => {
+    texture.flipY = false;
     texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
     texture.colorSpace = THREE.SRGBColorSpace;
