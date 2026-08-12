@@ -276,7 +276,10 @@ function startTrackingLoop() {
     currentPitch += (targetPitch - currentPitch) * TRACK_SMOOTHING;
 
     if (headModelRoot) {
-      headModelRoot.rotation.y = currentYaw;
+      // Blockbench's exported front face points away from the camera by
+      // default — add a 180° base offset so the face looks toward the
+      // viewer, then layer the mouse-follow rotation on top.
+      headModelRoot.rotation.y = Math.PI + currentYaw;
       headModelRoot.rotation.x = currentPitch;
       headRenderer.render(headScene, headCamera);
     }
