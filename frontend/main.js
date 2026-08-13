@@ -54,9 +54,13 @@ function showPage(pageName) {
   document.getElementById("home-nav-button").classList.toggle("active", pageName === "home");
   document.getElementById("settings-nav-button").classList.toggle("active", pageName === "settings");
   document.getElementById("modules-nav-button").classList.toggle("active", pageName === "modules");
+  document.getElementById("extensions-nav-button").classList.toggle("active", pageName === "extensions");
 
   if (pageName === "modules") {
     loadModulesList();
+  }
+  if (pageName === "extensions") {
+    syncJodToggleUI();
   }
 
   // The canvas has zero size while its page is hidden (display: none), so any
@@ -72,24 +76,66 @@ function showPage(pageName) {
 document.getElementById("home-nav-button").addEventListener("click", () => showPage("home"));
 document.getElementById("settings-nav-button").addEventListener("click", () => showPage("settings"));
 document.getElementById("modules-nav-button").addEventListener("click", () => showPage("modules"));
+document.getElementById("extensions-nav-button").addEventListener("click", () => showPage("extensions"));
 
-document.getElementById("update-latite-btn").addEventListener("click", async () => {
-  const statusEl = document.getElementById("modules-status");
-  const btn = document.getElementById("update-latite-btn");
+// --- Extensions page --------------------------------------------------
+
+function syncJodToggleUI() {
+  const toggle = document.getElementById("jod-toggle");
+  const enabled = !!settings.jod_extension_enabled;
+  toggle.classList.toggle("on", enabled);
+  toggle.setAttribute("aria-checked", String(enabled));
+}
+
+document.getElementById("download-latite-btn").addEventListener("click", async () => {
+  const statusEl = document.getElementById("extensions-status");
+  const btn = document.getElementById("download-latite-btn");
 
   btn.disabled = true;
   statusEl.textContent = "Checking for updates...";
 
   try {
-    const dllPath = await invoke("fetch_latest_latite", {
-      launcherDirectory: settings.launcher_directory,
-    });
+    await invoke("fetch_latest_latite", { launcherDirectory: settings.launcher_directory });
     statusEl.textContent = "Latite is up to date.";
-    console.log("Latite DLL at:", dllPath);
   } catch (err) {
     statusEl.textContent = "Update failed: " + err;
   } finally {
     btn.disabled = false;
+  }
+});
+
+document.getElementById("download-jod-btn").addEventListener("click", async () => {
+  const statusEl = document.getElementById("extensions-status");
+  const btn = document.getElementById("download-jod-btn");
+
+  btn.disabled = true;
+  statusEl.textContent = "Checking for updates...";
+
+  try {
+    await invoke("fetch_jod_extension", { launcherDirectory: settings.launcher_directory });
+    statusEl.textContent = "JoD is up to date.";
+  } catch (err) {
+    statusEl.textContent = "Update failed: " + err;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("jod-toggle").addEventListener("click", async () => {
+  const statusEl = document.getElementById("extensions-status");
+  const toggle = document.getElementById("jod-toggle");
+  const nextEnabled = !toggle.classList.contains("on");
+
+  // Optimistic UI, revert on failure.
+  toggle.classList.toggle("on", nextEnabled);
+  toggle.setAttribute("aria-checked", String(nextEnabled));
+
+  try {
+    settings = await invoke("set_jod_enabled", { enabled: nextEnabled });
+  } catch (err) {
+    toggle.classList.toggle("on", !nextEnabled);
+    toggle.setAttribute("aria-checked", String(!nextEnabled));
+    statusEl.textContent = "Failed to update: " + err;
   }
 });
 
@@ -599,6 +645,11 @@ async function launchGame() {
       .map((name) => settings.clients.find((c) => c.name === name))
       .filter(Boolean)
       .map((c) => c.dll_path);
+
+    if (settings.jod_extension_enabled) {
+      const jodPath = await invoke("get_jod_dll_path", { launcherDirectory: settings.launcher_directory });
+      if (jodPath) dllPaths.push(jodPath);
+    }
 
     await invoke("launch_minecraft", { clientDllPaths: dllPaths });
 

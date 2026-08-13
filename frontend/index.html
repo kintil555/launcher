@@ -34,6 +34,7 @@
 
       <button id="home-nav-button" class="nav-pill active" data-page="home">Home</button>
       <button id="modules-nav-button" class="nav-pill" data-page="modules">Modules</button>
+      <button id="extensions-nav-button" class="nav-pill" data-page="extensions">Extensions</button>
 
       <div class="window-controls">
         <button id="minimize-button" class="win-btn" title="Minimize">
@@ -80,10 +81,35 @@
       <section id="page-modules" class="page">
         <header class="page-header">
           <h1>Modules</h1>
-          <button id="update-latite-btn" class="btn-secondary">Update Latite</button>
         </header>
         <div id="modules-status" class="modules-status"></div>
         <div id="modules-list" class="modules-list"></div>
+      </section>
+
+      <section id="page-extensions" class="page">
+        <header class="page-header">
+          <h1>Extensions</h1>
+        </header>
+        <div id="extensions-status" class="modules-status"></div>
+
+        <div class="extension-card">
+          <div class="extension-card-info">
+            <span class="extension-card-name">Latite (main client)</span>
+            <span class="extension-card-desc">The core Ender/Latite client build.</span>
+          </div>
+          <button id="download-latite-btn" class="btn-secondary">Download / Update</button>
+        </div>
+
+        <div class="extension-card">
+          <div class="extension-card-info">
+            <span class="extension-card-name">JoD — Jump on Damage</span>
+            <span class="extension-card-desc">Standalone extension module. Can run alongside your main client, or on its own with vanilla Minecraft.</span>
+          </div>
+          <div class="extension-card-actions">
+            <button id="download-jod-btn" class="btn-secondary">Download / Update</button>
+            <button id="jod-toggle" class="module-toggle" role="switch" aria-checked="false"></button>
+          </div>
+        </div>
       </section>
 
       <section id="page-settings" class="page">

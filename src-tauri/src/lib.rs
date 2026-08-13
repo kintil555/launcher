@@ -7,7 +7,7 @@ mod updater;
 
 use modules::{list_modules, set_module_enabled};
 use settings::{AppSettings, ClientEntry, ModelView};
-use updater::fetch_latest_latite;
+use updater::{fetch_jod_extension, fetch_latest_latite, get_jod_dll_path};
 use std::sync::Mutex;
 use tauri::State;
 
@@ -84,6 +84,14 @@ fn update_appearance(
 }
 
 #[tauri::command]
+fn set_jod_enabled(enabled: bool, state: State<AppState>) -> Result<AppSettings, String> {
+    let mut settings = state.settings.lock().unwrap();
+    settings.jod_extension_enabled = enabled;
+    settings::save(&settings).map_err(|e| e.to_string())?;
+    Ok(settings.clone())
+}
+
+#[tauri::command]
 fn open_directory(path: String) -> Result<(), String> {
     std::fs::create_dir_all(&path).map_err(|e| e.to_string())?;
     std::process::Command::new("explorer.exe")
@@ -125,6 +133,9 @@ pub fn run() {
             list_modules,
             set_module_enabled,
             fetch_latest_latite,
+            fetch_jod_extension,
+            get_jod_dll_path,
+            set_jod_enabled,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Ender Client");

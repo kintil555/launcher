@@ -32,6 +32,10 @@ pub struct AppSettings {
     /// Up to two client names, injected together in this order.
     #[serde(default)]
     pub selected_client_names: Vec<String>,
+    /// Whether the JoD (Jump on Damage) extension DLL should be injected
+    /// alongside the selected client(s) at launch.
+    #[serde(default)]
+    pub jod_extension_enabled: bool,
     #[serde(default = "default_accent_color")]
     pub accent_color: String,
     #[serde(default = "default_font_family")]
@@ -46,6 +50,7 @@ impl Default for AppSettings {
             launcher_directory: default_launcher_directory(),
             clients: Vec::new(),
             selected_client_names: Vec::new(),
+            jod_extension_enabled: false,
             accent_color: default_accent_color(),
             font_family: default_font_family(),
             model_view: default_model_view(),
