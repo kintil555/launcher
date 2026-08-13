@@ -247,9 +247,10 @@ function setActiveModelView(view, { skipSave = false } = {}) {
 // --- Home page: pointer tracking (shared by both viewers) -----------------
 
 function startTrackingLoop() {
-  // Track relative to whichever model canvas is currently visible — the
-  // stage fills the whole content area, which made the head follow the
-  // mouse across the entire window instead of just around the model.
+  // Track relative to whichever model canvas is currently visible, but
+  // listen on the whole window — the head/body should keep following the
+  // mouse even when it's over the header, launch button, or other UI
+  // outside the stage, not just directly above the canvas.
   const headCanvas = document.getElementById("head-canvas");
   const bodyCanvas = document.getElementById("body-canvas");
 
@@ -260,11 +261,10 @@ function startTrackingLoop() {
     const ny = Math.max(-1, Math.min(1, (e.clientY - rect.top - rect.height / 2) / (rect.height / 2)));
 
     targetYaw = nx * MAX_YAW;
-    targetPitch = -ny * MAX_PITCH;
+    targetPitch = ny * MAX_PITCH;
   }
 
-  headCanvas.addEventListener("pointermove", onPointerMove);
-  bodyCanvas.addEventListener("pointermove", onPointerMove);
+  window.addEventListener("pointermove", onPointerMove);
 
   // Freeze at the last tracked pose when the pointer leaves the stage,
   // rather than resetting to center.
