@@ -98,6 +98,10 @@ html, body {
   border-radius: 9px;
   padding: 2px;
   gap: 2px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .source-toggle-option {
@@ -244,7 +248,7 @@ html, body {
 .content {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  overflow: visible;
 }
 
 .page { display: none; height: 100%; }
