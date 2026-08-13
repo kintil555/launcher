@@ -275,7 +275,9 @@ function startTrackingLoop() {
     currentYaw += (targetYaw - currentYaw) * TRACK_SMOOTHING;
     currentPitch += (targetPitch - currentPitch) * TRACK_SMOOTHING;
 
-    if (headModelRoot) {
+    const homeVisible = document.getElementById("page-home").classList.contains("active");
+
+    if (headModelRoot && homeVisible) {
       // Blockbench's exported front face points away from the camera by
       // default — add a 180° base offset so the face looks toward the
       // viewer, then layer the mouse-follow rotation on top.
@@ -284,7 +286,7 @@ function startTrackingLoop() {
       headRenderer.render(headScene, headCamera);
     }
 
-    if (bodyViewer && document.getElementById("body-canvas").style.display !== "none") {
+    if (bodyViewer && homeVisible && document.getElementById("body-canvas").style.display !== "none") {
       bodyViewer.playerObject.rotation.y = currentYaw;
     }
 
