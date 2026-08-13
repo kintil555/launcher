@@ -3,9 +3,11 @@ mod launcher;
 mod minecraft;
 mod modules;
 mod settings;
+mod updater;
 
 use modules::{list_modules, set_module_enabled};
 use settings::{AppSettings, ClientEntry, ModelView};
+use updater::fetch_latest_latite;
 use std::sync::Mutex;
 use tauri::State;
 
@@ -122,6 +124,7 @@ pub fn run() {
             launch_minecraft,
             list_modules,
             set_module_enabled,
+            fetch_latest_latite,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Ender Client");
