@@ -53,6 +53,11 @@ function showPage(pageName) {
 
   document.getElementById("home-nav-button").classList.toggle("active", pageName === "home");
   document.getElementById("settings-nav-button").classList.toggle("active", pageName === "settings");
+  document.getElementById("modules-nav-button").classList.toggle("active", pageName === "modules");
+
+  if (pageName === "modules") {
+    loadModulesList();
+  }
 
   // The canvas has zero size while its page is hidden (display: none), so any
   // renderer sized during that time ends up 0x0. Resize once the page is visible.
@@ -66,6 +71,64 @@ function showPage(pageName) {
 
 document.getElementById("home-nav-button").addEventListener("click", () => showPage("home"));
 document.getElementById("settings-nav-button").addEventListener("click", () => showPage("settings"));
+document.getElementById("modules-nav-button").addEventListener("click", () => showPage("modules"));
+
+// --- Modules page ---------------------------------------------------------
+
+async function loadModulesList() {
+  const statusEl = document.getElementById("modules-status");
+  const listEl = document.getElementById("modules-list");
+
+  statusEl.textContent = "";
+  listEl.innerHTML = "";
+
+  let modules;
+  try {
+    modules = await invoke("list_modules");
+  } catch (err) {
+    statusEl.textContent = err;
+    return;
+  }
+
+  if (modules.length === 0) {
+    statusEl.textContent = "No modules found in the config yet.";
+    return;
+  }
+
+  for (const mod of modules) {
+    const row = document.createElement("div");
+    row.className = "module-row";
+
+    const label = document.createElement("span");
+    label.className = "module-name";
+    label.textContent = mod.name;
+
+    const toggle = document.createElement("button");
+    toggle.className = "module-toggle" + (mod.enabled ? " on" : "");
+    toggle.setAttribute("role", "switch");
+    toggle.setAttribute("aria-checked", String(mod.enabled));
+
+    toggle.addEventListener("click", async () => {
+      const nextEnabled = !toggle.classList.contains("on");
+      // Optimistic UI update; revert if the write fails so the toggle
+      // never shows a state the file doesn't actually have.
+      toggle.classList.toggle("on", nextEnabled);
+      toggle.setAttribute("aria-checked", String(nextEnabled));
+      try {
+        await invoke("set_module_enabled", { moduleName: mod.name, enabled: nextEnabled });
+      } catch (err) {
+        toggle.classList.toggle("on", !nextEnabled);
+        toggle.setAttribute("aria-checked", String(!nextEnabled));
+        statusEl.textContent = err;
+      }
+    });
+
+    row.appendChild(label);
+    row.appendChild(toggle);
+    listEl.appendChild(row);
+  }
+}
+
 
 // --- Init ---------------------------------------------------------------
 

@@ -1,8 +1,10 @@
 mod injector;
 mod launcher;
 mod minecraft;
+mod modules;
 mod settings;
 
+use modules::{list_modules, set_module_enabled};
 use settings::{AppSettings, ClientEntry, ModelView};
 use std::sync::Mutex;
 use tauri::State;
@@ -118,6 +120,8 @@ pub fn run() {
             open_directory,
             find_active_skin_path,
             launch_minecraft,
+            list_modules,
+            set_module_enabled,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Ender Client");
