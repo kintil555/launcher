@@ -677,3 +677,13 @@ select:focus, input[type="text"]:focus {
   gap: 12px;
   flex-shrink: 0;
 }
+
+.extension-status {
+  font-size: 12px;
+  color: rgba(140, 220, 160, 0.9);
+  flex-shrink: 0;
+}
+
+.extension-status.error {
+  color: rgba(230, 130, 130, 0.9);
+}

@@ -61,6 +61,7 @@ function showPage(pageName) {
   }
   if (pageName === "extensions") {
     syncJodToggleUI();
+    checkAllExtensionUpdates();
   }
 
   // The canvas has zero size while its page is hidden (display: none), so any
@@ -87,42 +88,34 @@ function syncJodToggleUI() {
   toggle.setAttribute("aria-checked", String(enabled));
 }
 
-document.getElementById("download-latite-btn").addEventListener("click", async () => {
-  const statusEl = document.getElementById("extensions-status");
-  const btn = document.getElementById("download-latite-btn");
-
-  btn.disabled = true;
-  statusEl.textContent = "Checking for updates...";
-
-  try {
-    await invoke("fetch_latest_latite", { launcherDirectory: settings.launcher_directory });
-    statusEl.textContent = "Latite is up to date.";
-  } catch (err) {
-    statusEl.textContent = "Update failed: " + err;
-  } finally {
-    btn.disabled = false;
-  }
-});
-
-document.getElementById("download-jod-btn").addEventListener("click", async () => {
-  const statusEl = document.getElementById("extensions-status");
-  const btn = document.getElementById("download-jod-btn");
-
-  btn.disabled = true;
-  statusEl.textContent = "Checking for updates...";
+// Silently checks for a newer build and downloads it if one exists; the
+// backend command itself is the source of truth for "is this already the
+// latest" (it compares the release's published_at against a local marker
+// and no-ops if unchanged), so this just reflects that result in the UI —
+// no manual "Download" action needed anywhere.
+async function checkAndUpdateExtension(fetchCommand, statusElId) {
+  const statusEl = document.getElementById(statusElId);
+  statusEl.textContent = "Checking...";
+  statusEl.classList.remove("error");
 
   try {
-    await invoke("fetch_jod_extension", { launcherDirectory: settings.launcher_directory });
-    statusEl.textContent = "JoD is up to date.";
+    await invoke(fetchCommand, { launcherDirectory: settings.launcher_directory });
+    statusEl.textContent = "Latest";
   } catch (err) {
-    statusEl.textContent = "Update failed: " + err;
-  } finally {
-    btn.disabled = false;
+    statusEl.textContent = "Check failed";
+    statusEl.classList.add("error");
+    console.error(fetchCommand, err);
   }
-});
+}
+
+async function checkAllExtensionUpdates() {
+  await Promise.all([
+    checkAndUpdateExtension("fetch_latest_latite", "latite-status"),
+    checkAndUpdateExtension("fetch_jod_extension", "jod-status"),
+  ]);
+}
 
 document.getElementById("jod-toggle").addEventListener("click", async () => {
-  const statusEl = document.getElementById("extensions-status");
   const toggle = document.getElementById("jod-toggle");
   const nextEnabled = !toggle.classList.contains("on");
 
@@ -135,9 +128,10 @@ document.getElementById("jod-toggle").addEventListener("click", async () => {
   } catch (err) {
     toggle.classList.toggle("on", !nextEnabled);
     toggle.setAttribute("aria-checked", String(!nextEnabled));
-    statusEl.textContent = "Failed to update: " + err;
+    console.error("set_jod_enabled failed:", err);
   }
 });
+
 
 // --- Modules page ---------------------------------------------------------
 
@@ -217,6 +211,10 @@ async function init() {
     await loadActiveSkin();
 
     startTrackingLoop();
+
+    // Don't block startup on this — just kick it off in the background so
+    // Latite/JoD stay current even if the user never opens Extensions.
+    checkAllExtensionUpdates();
 
     const chooseBtn = document.getElementById("choose-skin-btn");
     if (chooseBtn) chooseBtn.addEventListener("click", chooseSkinManually);
