@@ -6,7 +6,7 @@ mod settings;
 mod updater;
 
 use modules::{list_modules, set_module_enabled};
-use settings::{AppSettings, ClientEntry, ModelView};
+use settings::{AppSettings, ClientEntry, ClientSourceMode, ModelView};
 use updater::{fetch_jod_extension, fetch_latest_latite, get_jod_dll_path};
 use std::sync::Mutex;
 use tauri::State;
@@ -84,6 +84,14 @@ fn update_appearance(
 }
 
 #[tauri::command]
+fn set_client_source_mode(mode: ClientSourceMode, state: State<AppState>) -> Result<AppSettings, String> {
+    let mut settings = state.settings.lock().unwrap();
+    settings.client_source_mode = mode;
+    settings::save(&settings).map_err(|e| e.to_string())?;
+    Ok(settings.clone())
+}
+
+#[tauri::command]
 fn set_jod_enabled(enabled: bool, state: State<AppState>) -> Result<AppSettings, String> {
     let mut settings = state.settings.lock().unwrap();
     settings.jod_extension_enabled = enabled;
@@ -126,6 +134,7 @@ pub fn run() {
             add_client,
             remove_client,
             set_selected_clients,
+            set_client_source_mode,
             update_appearance,
             open_directory,
             find_active_skin_path,

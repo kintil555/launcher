@@ -108,11 +108,12 @@ async function checkAndUpdateExtension(fetchCommand, statusElId) {
   }
 }
 
+// Latite ("Release") is intentionally excluded here: it now downloads
+// on-demand at Launch time (see launchGame) instead of eagerly in the
+// background, so users aren't surprised by a silent download they didn't
+// ask for. JoD is a separate opt-in extension and keeps auto-checking.
 async function checkAllExtensionUpdates() {
-  await Promise.all([
-    checkAndUpdateExtension("fetch_latest_latite", "latite-status"),
-    checkAndUpdateExtension("fetch_jod_extension", "jod-status"),
-  ]);
+  await checkAndUpdateExtension("fetch_jod_extension", "jod-status");
 }
 
 document.getElementById("jod-toggle").addEventListener("click", async () => {
@@ -202,6 +203,7 @@ async function init() {
     setActiveModelView(settings.model_view, { skipSave: true });
 
     renderClientSelector();
+    syncSourceModeUI();
     renderColorSwatches();
     renderFontSelector();
     renderModelToggle();
@@ -631,29 +633,63 @@ function renderClientSelector() {
 document.getElementById("launch-button").addEventListener("click", launchGame);
 document.getElementById("launch-button-mini").addEventListener("click", launchGame);
 
+// --- Client source mode (Release / Custom) ---------------------------
+
+function syncSourceModeUI() {
+  const isRelease = settings.client_source_mode === "release";
+  document.getElementById("source-release-button").classList.toggle("active", isRelease);
+  document.getElementById("source-custom-button").classList.toggle("active", !isRelease);
+  document.getElementById("client-select-row").classList.toggle("hidden", isRelease);
+}
+
+async function setSourceMode(mode) {
+  if (settings.client_source_mode === mode) return;
+  try {
+    settings = await invoke("set_client_source_mode", { mode });
+  } catch (err) {
+    console.error("set_client_source_mode failed:", err);
+  }
+  syncSourceModeUI();
+}
+
+document.getElementById("source-release-button").addEventListener("click", () => setSourceMode("release"));
+document.getElementById("source-custom-button").addEventListener("click", () => setSourceMode("custom"));
+
 async function launchGame() {
   const buttons = [document.getElementById("launch-button"), document.getElementById("launch-button-mini")];
   const status = document.getElementById("status-text");
 
   buttons.forEach((b) => (b.disabled = true));
-  status.textContent = "Launching...";
 
   try {
-    const dllPaths = settings.selected_client_names
-      .map((name) => settings.clients.find((c) => c.name === name))
-      .filter(Boolean)
-      .map((c) => c.dll_path);
+    let dllPaths = [];
+    let launchedLabel = "Launched.";
+
+    if (settings.client_source_mode === "release") {
+      // Download-on-demand: no-ops if the local build is already current.
+      status.textContent = "Checking for latest client...";
+      const releasePath = await invoke("fetch_latest_latite", { launcherDirectory: settings.launcher_directory });
+      dllPaths.push(releasePath);
+      launchedLabel = "Launched with Release.";
+    } else {
+      dllPaths = settings.selected_client_names
+        .map((name) => settings.clients.find((c) => c.name === name))
+        .filter(Boolean)
+        .map((c) => c.dll_path);
+      launchedLabel = dllPaths.length > 0
+        ? `Launched with ${settings.selected_client_names.join(" + ")}.`
+        : "Launched.";
+    }
 
     if (settings.jod_extension_enabled) {
       const jodPath = await invoke("get_jod_dll_path", { launcherDirectory: settings.launcher_directory });
       if (jodPath) dllPaths.push(jodPath);
     }
 
+    status.textContent = "Launching...";
     await invoke("launch_minecraft", { clientDllPaths: dllPaths });
 
-    status.textContent = dllPaths.length > 0
-      ? `Launched with ${settings.selected_client_names.join(" + ")}.`
-      : "Launched.";
+    status.textContent = launchedLabel;
   } catch (err) {
     status.textContent = `Failed: ${err}`;
   } finally {

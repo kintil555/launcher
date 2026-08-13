@@ -102,10 +102,36 @@ html, body {
 
 .btn-launch-mini:hover { background: var(--accent-hover); }
 
+.source-toggle {
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  padding: 2px;
+  margin-left: 8px;
+  gap: 2px;
+}
+
+.source-toggle-option {
+  background: transparent;
+  color: var(--fg-muted, var(--fg));
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.source-toggle-option:hover { color: var(--fg); }
+.source-toggle-option.active { background: var(--accent-soft); color: var(--accent); }
+
 .client-select-row {
   position: relative;
   margin-left: 8px;
 }
+
+.client-select-row.hidden { display: none; }
 
 .client-selector-button {
   display: flex;

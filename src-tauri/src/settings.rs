@@ -24,6 +24,16 @@ pub enum ModelView {
     Body,
 }
 
+/// Where the launched client DLL comes from. "Release" downloads (or reuses
+/// the already-downloaded) official Latite build on demand at launch time;
+/// "Custom" uses the user's own client list/selection, same as before.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ClientSourceMode {
+    Release,
+    Custom,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {
     pub launcher_directory: String,
@@ -36,6 +46,10 @@ pub struct AppSettings {
     /// alongside the selected client(s) at launch.
     #[serde(default)]
     pub jod_extension_enabled: bool,
+    /// "Release" (default) downloads/reuses the official Latite build
+    /// on-demand at launch; "Custom" uses `clients`/`selected_client_names`.
+    #[serde(default = "default_client_source_mode")]
+    pub client_source_mode: ClientSourceMode,
     #[serde(default = "default_accent_color")]
     pub accent_color: String,
     #[serde(default = "default_font_family")]
@@ -51,11 +65,16 @@ impl Default for AppSettings {
             clients: Vec::new(),
             selected_client_names: Vec::new(),
             jod_extension_enabled: false,
+            client_source_mode: default_client_source_mode(),
             accent_color: default_accent_color(),
             font_family: default_font_family(),
             model_view: default_model_view(),
         }
     }
+}
+
+fn default_client_source_mode() -> ClientSourceMode {
+    ClientSourceMode::Release
 }
 
 fn default_accent_color() -> String {

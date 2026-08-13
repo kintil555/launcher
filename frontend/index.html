@@ -17,6 +17,11 @@
         </div>
       </div>
 
+      <div class="source-toggle" id="source-toggle" role="tablist">
+        <button id="source-release-button" class="source-toggle-option" data-mode="release">Release</button>
+        <button id="source-custom-button" class="source-toggle-option" data-mode="custom">Custom</button>
+      </div>
+
       <div class="client-select-row" id="client-select-row">
         <button id="client-selector-button" class="client-selector-button">
           <span id="client-selector-label">Vanilla</span>
@@ -94,9 +99,9 @@
         <div class="extension-card">
           <div class="extension-card-info">
             <span class="extension-card-name">Latite (main client)</span>
-            <span class="extension-card-desc">The core Ender/Latite client build.</span>
+            <span class="extension-card-desc">The core Ender/Latite client build. Downloaded automatically when you launch with Release selected.</span>
           </div>
-          <span id="latite-status" class="extension-status">Checking...</span>
+          <span class="extension-status">Managed via Release</span>
         </div>
 
         <div class="extension-card">
