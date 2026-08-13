@@ -18,21 +18,13 @@
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
         </button>
+        <button id="home-nav-button" class="nav-pill active" data-page="home">Home</button>
 
         <div class="source-toggle" id="source-toggle" role="tablist">
           <button id="source-release-button" class="source-toggle-option" data-mode="release">Release</button>
           <button id="source-custom-button" class="source-toggle-option" data-mode="custom">Custom</button>
         </div>
 
-        <div class="client-select-row" id="client-select-row">
-          <button id="client-selector-button" class="client-selector-button">
-            <span id="client-selector-label">Vanilla</span>
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </button>
-          <div id="client-selector-menu" class="client-selector-menu"></div>
-        </div>
-
-        <button id="home-nav-button" class="nav-pill active" data-page="home">Home</button>
         <button id="modules-nav-button" class="nav-pill" data-page="modules">Modules</button>
         <button id="extensions-nav-button" class="nav-pill" data-page="extensions">Extensions</button>
       </nav>
@@ -73,6 +65,14 @@
           <canvas id="head-canvas"></canvas>
           <canvas id="body-canvas" style="display: none;"></canvas>
           <button id="choose-skin-btn" class="choose-skin-btn" style="display: none;">Choose Skin...</button>
+        </div>
+
+        <div class="client-select-row hidden" id="client-select-row">
+          <button id="client-selector-button" class="client-selector-button">
+            <span id="client-selector-label">Vanilla</span>
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"></polyline></svg>
+          </button>
+          <div id="client-selector-menu" class="client-selector-menu"></div>
         </div>
 
         <div class="launch-row">
