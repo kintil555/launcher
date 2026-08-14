@@ -98,7 +98,7 @@ html, body {
 .source-toggle {
   display: flex;
   background: var(--surface);
-  border: 2px solid #ffffff;
+  border: 1.5px solid var(--surface-border);
   border-radius: 11px;
   padding: 3px;
   gap: 3px;
@@ -106,6 +106,7 @@ html, body {
   left: 50%;
   top: calc(50% + 4px);
   transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.12);
 }
 
 .source-toggle-option {
@@ -373,6 +374,7 @@ html, body {
   border: 1px solid var(--surface-border);
   border-radius: 16px;
   padding: 20px 24px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
 .status-text {
