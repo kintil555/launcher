@@ -55,7 +55,6 @@ html, body {
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   height: 76px;
   min-height: 76px;
   padding: 0 22px;
@@ -78,24 +77,21 @@ html, body {
   align-items: center;
   min-width: 0;
   height: 100%;
+  margin-left: auto;
 }
 
+/* Single nav group (Settings, Home, Release/Custom toggle, Modules, Extensions)
+   centered as one block in the titlebar — matching the reference layout where
+   everything sits together rather than split to opposite edges. */
 .topbar-nav {
   display: flex;
   align-items: center;
-  gap: 22px;
+  gap: 18px;
   flex-shrink: 0;
-}
-
-.topbar-nav-right {
-  gap: 14px;
-}
-
-.topbar-right-zone {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  flex-shrink: 0;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 
 .source-toggle {
@@ -105,10 +101,6 @@ html, body {
   border-radius: 9px;
   padding: 2px;
   gap: 2px;
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
 }
 
 .source-toggle-option {
@@ -228,23 +220,6 @@ html, body {
 .nav-pill:hover { background: var(--surface); color: var(--fg); }
 .nav-pill.active { background: var(--accent-soft); color: var(--accent); }
 
-/* Left zone (Settings + Home) is emphasized — larger and more spaced out,
-   matching the reference layout where the leftmost controls read as primary. */
-.topbar-nav-left .icon-button {
-  width: 48px;
-  height: 48px;
-}
-
-.topbar-nav-left .icon-button svg {
-  width: 21px;
-  height: 21px;
-}
-
-.topbar-nav-left .nav-pill {
-  font-size: 15px;
-  padding: 13px 24px;
-}
-
 .window-controls {
   display: flex;
   align-items: center;
@@ -337,18 +312,18 @@ html, body {
   to { transform: rotate(360deg); }
 }
 
-.sq-1  { top: 6%;  left: 5%;  width: 110px; height: 110px; }
-.sq-2  { top: 3%;  left: 24%; width: 60px;  height: 60px; }
-.sq-3  { top: 16%; left: 58%; width: 34px;  height: 34px; }
-.sq-4  { top: 4%;  left: 76%; width: 90px;  height: 90px; }
-.sq-5  { top: 30%; left: 2%;  width: 46px;  height: 46px; }
-.sq-6  { top: 55%; left: 8%;  width: 130px; height: 130px; }
-.sq-7  { top: 62%; left: 66%; width: 76px;  height: 76px; }
-.sq-8  { top: 38%; left: 86%; width: 30px;  height: 30px; }
-.sq-9  { top: 70%; left: 38%; width: 26px;  height: 26px; }
-.sq-10 { top: 20%; left: 40%; width: 20px;  height: 20px; }
-.sq-11 { top: 48%; left: 60%; width: 44px;  height: 44px; }
-.sq-12 { top: 80%; left: 18%; width: 54px;  height: 54px; }
+.sq-1  { top: 18%; left: 22%; width: 90px;  height: 90px; }
+.sq-2  { top: 12%; left: 38%; width: 50px;  height: 50px; }
+.sq-3  { top: 24%; left: 56%; width: 30px;  height: 30px; }
+.sq-4  { top: 14%; left: 68%; width: 74px;  height: 74px; }
+.sq-5  { top: 36%; left: 16%; width: 38px;  height: 38px; }
+.sq-6  { top: 58%; left: 24%; width: 100px; height: 100px; }
+.sq-7  { top: 62%; left: 60%; width: 62px;  height: 62px; }
+.sq-8  { top: 42%; left: 76%; width: 26px;  height: 26px; }
+.sq-9  { top: 68%; left: 46%; width: 22px;  height: 22px; }
+.sq-10 { top: 26%; left: 46%; width: 18px;  height: 18px; }
+.sq-11 { top: 48%; left: 62%; width: 36px;  height: 36px; }
+.sq-12 { top: 74%; left: 32%; width: 44px;  height: 44px; }
 
 .sq-2  { animation-duration: 7s;  animation-delay: 0.6s; }
 .sq-3  { animation-duration: 14s; animation-delay: 0s; }
@@ -362,12 +337,13 @@ html, body {
 #body-canvas {
   /* Centered square so the camera aspect stays 1:1 — a canvas stretched to
      the full rectangular stage skewed the perspective and made the model
-     look off-center. */
-  width: min(100%, 100%);
-  height: min(100%, 100%);
+     look off-center. Sized below 100% so the head reads as a focal object
+     rather than filling the whole stage. */
+  width: min(68%, 68%);
+  height: min(68%, 68%);
   aspect-ratio: 1 / 1;
-  max-width: 100%;
-  max-height: 100%;
+  max-width: 68%;
+  max-height: 68%;
   display: block;
   position: absolute;
   top: 50%;
@@ -377,7 +353,7 @@ html, body {
 }
 
 .launch-row {
-  max-width: 480px;
+  max-width: 520px;
   margin: 0 auto;
   width: 100%;
   display: flex;
@@ -385,6 +361,10 @@ html, body {
   gap: 10px;
   position: relative;
   z-index: 2;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 16px;
+  padding: 18px 22px;
 }
 
 .status-text {
@@ -433,6 +413,12 @@ html, body {
 .btn-primary:hover { background: var(--accent-hover); }
 .btn-primary:active { background: var(--accent-pressed); }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-launch-main {
+  font-size: 19px;
+  padding: 20px 20px;
+  border-radius: 14px;
+}
 
 .btn-secondary {
   background: var(--surface);
