@@ -80,36 +80,42 @@ html, body {
   margin-left: auto;
 }
 
-/* Single nav group (Settings, Home, Release/Custom toggle, Modules, Extensions)
-   centered as one block in the titlebar — matching the reference layout where
-   everything sits together rather than split to opposite edges. */
+/* Left-hand nav group (Settings, Home, Modules, Extensions) — sits in normal
+   flex flow on the left, same as any ordinary toolbar group. Kept separate
+   from .source-toggle below, which is the only element centered in the
+   titlebar. */
 .topbar-nav {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 14px;
   flex-shrink: 0;
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
 }
 
+/* Release/Custom toggle — centered on the titlebar as a whole (not on the
+   left nav group), independent of how wide topbar-nav or topbar-side end up
+   being. Sits a little lower than the nav row and reads as a bigger, more
+   prominent control with a white outline. */
 .source-toggle {
   display: flex;
   background: var(--surface);
-  border: 1px solid var(--surface-border);
-  border-radius: 9px;
-  padding: 2px;
-  gap: 2px;
+  border: 2px solid #ffffff;
+  border-radius: 11px;
+  padding: 3px;
+  gap: 3px;
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 4px);
+  transform: translate(-50%, -50%);
 }
 
 .source-toggle-option {
   background: transparent;
   color: var(--fg-muted, var(--fg));
   border: none;
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 13px;
+  border-radius: 9px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
   font-family: inherit;
   cursor: pointer;
 }
@@ -339,11 +345,11 @@ html, body {
      the full rectangular stage skewed the perspective and made the model
      look off-center. Sized below 100% so the head reads as a focal object
      rather than filling the whole stage. */
-  width: min(68%, 68%);
-  height: min(68%, 68%);
+  width: min(75%, 75%);
+  height: min(75%, 75%);
   aspect-ratio: 1 / 1;
-  max-width: 68%;
-  max-height: 68%;
+  max-width: 75%;
+  max-height: 75%;
   display: block;
   position: absolute;
   top: 50%;
@@ -358,13 +364,15 @@ html, body {
   width: 100%;
   display: flex;
   flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
   gap: 10px;
   position: relative;
   z-index: 2;
   background: var(--surface);
   border: 1px solid var(--surface-border);
   border-radius: 16px;
-  padding: 18px 22px;
+  padding: 20px 24px;
 }
 
 .status-text {
