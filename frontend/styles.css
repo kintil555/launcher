@@ -125,19 +125,14 @@ html, body {
 .source-toggle-option.active { background: var(--accent-soft); color: var(--accent); }
 
 .client-select-row {
-  position: absolute;
-  left: -60px;
-  right: -60px;
-  bottom: calc(100% + 22px);
+  position: relative;
   display: flex;
-  justify-content: center;
-  z-index: 3;
-  pointer-events: none;
 }
 
-.client-select-row > * { pointer-events: auto; }
-
-.client-select-row.hidden { display: none; }
+.client-select-row.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
 
 .client-selector-button {
   display: flex;
@@ -147,20 +142,21 @@ html, body {
   color: var(--fg);
   border: 1px solid var(--surface-border);
   border-radius: 10px;
-  padding: 9px 16px;
+  padding: 12px 16px;
   font-size: 13px;
   font-family: inherit;
   cursor: pointer;
-  min-width: 180px;
+  min-width: 160px;
   justify-content: center;
 }
 
 .client-selector-button:hover { border-color: var(--accent); }
+.client-selector-button:disabled { cursor: not-allowed; }
 
 .client-selector-menu {
   display: none;
   position: absolute;
-  bottom: calc(100% + 8px);
+  top: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
   width: 260px;
@@ -169,7 +165,7 @@ html, body {
   border-radius: 12px;
   padding: 8px;
   z-index: 20;
-  box-shadow: 0 -12px 28px rgba(0,0,0,0.45);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.45);
 }
 
 .client-selector-menu.open { display: block; }
@@ -467,6 +463,17 @@ html, body {
   font-size: 12px;
   color: var(--muted-fg);
   margin: 0 0 10px 0;
+}
+
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-toggle-row .settings-hint {
+  margin: 0;
 }
 
 .settings-label {

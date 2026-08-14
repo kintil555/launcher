@@ -56,6 +56,9 @@ pub struct AppSettings {
     pub font_family: String,
     #[serde(default = "default_model_view")]
     pub model_view: ModelView,
+    /// Whether the home-page player head/body gently bobs up and down.
+    #[serde(default = "default_head_bounce_enabled")]
+    pub head_bounce_enabled: bool,
 }
 
 impl Default for AppSettings {
@@ -69,6 +72,7 @@ impl Default for AppSettings {
             accent_color: default_accent_color(),
             font_family: default_font_family(),
             model_view: default_model_view(),
+            head_bounce_enabled: default_head_bounce_enabled(),
         }
     }
 }
@@ -87,6 +91,10 @@ fn default_font_family() -> String {
 
 fn default_model_view() -> ModelView {
     ModelView::Head
+}
+
+fn default_head_bounce_enabled() -> bool {
+    true
 }
 
 pub fn default_launcher_directory() -> String {

@@ -9,6 +9,8 @@ const MAX_YAW = 0.55;   // radians, ~31.5deg either side
 const MAX_PITCH = 0.35; // radians, ~20deg either side
 const TRACK_SMOOTHING = 0.12; // lerp factor per animation frame (lower = smoother/slower)
 const MAX_CLIENTS = 2;
+const BOUNCE_AMPLITUDE = 0.06; // model-space units the head/body bobs up/down
+const BOUNCE_SPEED = 1.3;      // radians per second fed into the sine wave
 
 const ACCENT_PRESETS = ["#8B5CF6", "#22C55E", "#3B82F6", "#F97316", "#EC4899", "#EAB308"];
 
@@ -22,6 +24,7 @@ let headScene = null;
 let headCamera = null;
 let headRenderer = null;
 let headModelRoot = null;
+let headModelRadius = 1;
 let headMaterial = null;
 
 // Shared pointer-tracking state, smoothed every animation frame regardless
@@ -207,6 +210,7 @@ async function init() {
     renderColorSwatches();
     renderFontSelector();
     renderModelToggle();
+    renderHeadBounceToggle();
     renderClientList();
     renderDirectory();
 
@@ -303,6 +307,7 @@ async function saveAppearance() {
     accentColor: settings.accent_color,
     fontFamily: settings.font_family,
     modelView: settings.model_view,
+    headBounceEnabled: settings.head_bounce_enabled,
   });
   applyAppearance();
 }
@@ -353,6 +358,34 @@ function renderModelToggle() {
   });
 }
 
+function renderHeadBounceToggle() {
+  const toggle = document.getElementById("head-bounce-toggle");
+
+  function syncUI() {
+    const enabled = !!settings.head_bounce_enabled;
+    toggle.classList.toggle("on", enabled);
+    toggle.setAttribute("aria-checked", String(enabled));
+  }
+
+  syncUI();
+
+  toggle.addEventListener("click", async () => {
+    const nextEnabled = !settings.head_bounce_enabled;
+
+    // Optimistic UI, revert on failure.
+    settings.head_bounce_enabled = nextEnabled;
+    syncUI();
+
+    try {
+      await saveAppearance();
+    } catch (err) {
+      settings.head_bounce_enabled = !nextEnabled;
+      syncUI();
+      console.error("saveAppearance (head bounce) failed:", err);
+    }
+  });
+}
+
 // Switches which viewer is mounted (head glTF vs. full-body skinview3d).
 // Persisting the choice is handled by the caller via saveAppearance().
 function setActiveModelView(view, { skipSave = false } = {}) {
@@ -398,6 +431,8 @@ function startTrackingLoop() {
   // Freeze at the last tracked pose when the pointer leaves the stage,
   // rather than resetting to center.
 
+  const bounceStart = performance.now();
+
   function tick() {
     // Exponential smoothing towards the pointer target — gives the head a
     // soft, slightly lagged follow instead of snapping straight to the cursor.
@@ -406,17 +441,26 @@ function startTrackingLoop() {
 
     const homeVisible = document.getElementById("page-home").classList.contains("active");
 
+    // Gentle up/down bob, layered on top of whatever base position the
+    // model already sits at — toggleable in Settings, off means the
+    // offset just settles back to 0 rather than the loop stopping.
+    const bounceOffset = settings && settings.head_bounce_enabled
+      ? Math.sin((performance.now() - bounceStart) / 1000 * BOUNCE_SPEED) * BOUNCE_AMPLITUDE
+      : 0;
+
     if (headModelRoot && homeVisible) {
       // Blockbench's exported front face points away from the camera by
       // default — add a 180° base offset so the face looks toward the
       // viewer, then layer the mouse-follow rotation on top.
       headModelRoot.rotation.y = Math.PI + currentYaw;
       headModelRoot.rotation.x = currentPitch;
+      headModelRoot.position.y = bounceOffset;
       headRenderer.render(headScene, headCamera);
     }
 
     if (bodyViewer && homeVisible && document.getElementById("body-canvas").style.display !== "none") {
       bodyViewer.playerObject.rotation.y = currentYaw;
+      bodyViewer.playerObject.position.y = bounceOffset;
     }
 
     requestAnimationFrame(tick);
@@ -471,6 +515,7 @@ function initHeadRenderer() {
       // fixed z, since a hardcoded distance only looked right for the old
       // model's scale and made this smaller model render tiny.
       const sphere = box.getBoundingSphere(new THREE.Sphere());
+      headModelRadius = sphere.radius;
       const fitDistance = (sphere.radius / Math.sin((headCamera.fov * Math.PI) / 360)) * 1.15;
       headCamera.position.set(0, 0, fitDistance);
       headCamera.near = fitDistance / 100;
@@ -639,7 +684,12 @@ function syncSourceModeUI() {
   const isRelease = settings.client_source_mode === "release";
   document.getElementById("source-release-button").classList.toggle("active", isRelease);
   document.getElementById("source-custom-button").classList.toggle("active", !isRelease);
-  document.getElementById("client-select-row").classList.toggle("hidden", isRelease);
+  const row = document.getElementById("client-select-row");
+  row.classList.toggle("disabled", isRelease);
+  document.getElementById("client-selector-button").disabled = isRelease;
+  if (isRelease) {
+    document.getElementById("client-selector-menu").classList.remove("open");
+  }
 }
 
 async function setSourceMode(mode) {

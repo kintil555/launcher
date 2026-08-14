@@ -73,12 +73,14 @@ fn update_appearance(
     accent_color: String,
     font_family: String,
     model_view: ModelView,
+    head_bounce_enabled: bool,
     state: State<AppState>,
 ) -> Result<AppSettings, String> {
     let mut settings = state.settings.lock().unwrap();
     settings.accent_color = accent_color;
     settings.font_family = font_family;
     settings.model_view = model_view;
+    settings.head_bounce_enabled = head_bounce_enabled;
     settings::save(&settings).map_err(|e| e.to_string())?;
     Ok(settings.clone())
 }

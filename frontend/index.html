@@ -66,7 +66,7 @@
 
         <div class="launch-row">
           <div class="launch-row-side left">
-            <div class="client-select-row hidden" id="client-select-row">
+            <div class="client-select-row" id="client-select-row">
               <button id="client-selector-button" class="client-selector-button">
                 <span id="client-selector-label">Vanilla</span>
                 <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"></polyline></svg>
@@ -149,6 +149,12 @@
             <div class="segmented" id="model-view-toggle">
               <button class="segmented-option active" data-value="head">Head</button>
               <button class="segmented-option" data-value="body">Full body</button>
+            </div>
+
+            <label class="settings-label">Bouncy head</label>
+            <div class="settings-toggle-row">
+              <span class="settings-hint">Gently bob the player model up and down</span>
+              <button id="head-bounce-toggle" class="module-toggle" role="switch" aria-checked="true"></button>
             </div>
           </div>
 
