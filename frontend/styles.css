@@ -310,14 +310,14 @@ html, body {
      the full rectangular stage skewed the perspective and made the model
      look off-center. Sized below 100% so the head reads as a focal object
      floating above the launch card, rather than filling the whole stage. */
-  width: min(79%, 79%);
-  height: min(79%, 79%);
+  width: min(103%, 103%);
+  height: min(103%, 103%);
   aspect-ratio: 1 / 1;
-  max-width: 79%;
-  max-height: 79%;
+  max-width: 103%;
+  max-height: 103%;
   display: block;
   position: absolute;
-  top: 44%;
+  top: 62%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 1;
