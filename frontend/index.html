@@ -45,20 +45,20 @@
 
       <section id="page-home" class="page active">
         <div class="model-stage">
-          <div class="stage-background" aria-hidden="true">
-            <span class="bg-square sq-1 cube-1"></span>
-            <span class="bg-square sq-2 cube-2 pulse"></span>
-            <span class="bg-square sq-3 cube-3 spin"></span>
-            <span class="bg-square sq-4 cube-4"></span>
-            <span class="bg-square sq-5 cube-filled filled"></span>
-            <span class="bg-square sq-6 cube-5 spin"></span>
-            <span class="bg-square sq-7 cube-1"></span>
-            <span class="bg-square sq-8 cube-filled pulse filled"></span>
-            <span class="bg-square sq-9 cube-2 pulse"></span>
-            <span class="bg-square sq-10 cube-filled filled"></span>
-            <span class="bg-square sq-11 cube-3 spin"></span>
-            <span class="bg-square sq-12 cube-4"></span>
-          </div>
+          <svg class="head-backdrop" viewBox="0 0 900 520" aria-hidden="true">
+            <rect x="150" y="60"  width="128" height="128" class="hb-sq hb-hollow" stroke-width="10" stroke-opacity="0.55" style="animation-duration: 9s, 13s; animation-delay: 0s, 0s;"></rect>
+            <rect x="88"  y="235" width="70"  height="70"  class="hb-sq hb-hollow" stroke-width="7"  stroke-opacity="0.5"  style="animation-duration: 11s, 17s; animation-delay: -1.7s, -2.3s;"></rect>
+            <rect x="662" y="120" width="60"  height="60"  class="hb-sq hb-hollow" stroke-width="6"  stroke-opacity="0.55" style="animation-duration: 8s, 11s; animation-delay: -3.4s, -4.6s;"></rect>
+            <rect x="640" y="340" width="46"  height="46"  class="hb-sq hb-hollow" stroke-width="5"  stroke-opacity="0.45" style="animation-duration: 9s, 13s; animation-delay: -5.1s, -6.9s;"></rect>
+            <rect x="252" y="322" width="58"  height="58"  class="hb-sq hb-fill" fill-opacity="0.4" style="animation-duration: 11s, 17s; animation-delay: -6.8s, -9.2s;"></rect>
+            <rect x="300" y="128" width="30"  height="30"  class="hb-sq hb-fill" fill-opacity="0.35" style="animation-duration: 8s, 11s; animation-delay: -8.5s, -11.5s;"></rect>
+            <rect x="548" y="34"  width="70"  height="70"  class="hb-sq hb-fill" fill-opacity="0.4" style="animation-duration: 9s, 13s; animation-delay: -10.2s, -13.8s;"></rect>
+            <rect x="600" y="228" width="50"  height="50"  class="hb-sq hb-fill" fill-opacity="0.45" style="animation-duration: 11s, 17s; animation-delay: -11.9s, -16.1s;"></rect>
+            <rect x="770" y="256" width="34"  height="34"  class="hb-sq hb-fill" fill-opacity="0.35" style="animation-duration: 8s, 11s; animation-delay: -13.6s, -18.4s;"></rect>
+            <rect x="205" y="425" width="26"  height="26"  class="hb-sq hb-fill" fill-opacity="0.3" style="animation-duration: 9s, 13s; animation-delay: -15.3s, -20.7s;"></rect>
+            <rect x="420" y="55"  width="34"  height="34"  class="hb-sq hb-fill" fill-opacity="0.3" style="animation-duration: 11s, 17s; animation-delay: -17s, -23s;"></rect>
+            <rect x="816" y="122" width="40"  height="40"  class="hb-sq hb-hollow" stroke-width="5"  stroke-opacity="0.4" style="animation-duration: 11s, 17s; animation-delay: -20.4s, -27.6s;"></rect>
+          </svg>
           <canvas id="head-canvas"></canvas>
           <canvas id="body-canvas" style="display: none;"></canvas>
           <button id="choose-skin-btn" class="choose-skin-btn" style="display: none;">Choose Skin...</button>
