@@ -55,6 +55,7 @@ html, body {
 .topbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   height: 76px;
   min-height: 76px;
   padding: 0 22px;
@@ -73,21 +74,27 @@ html, body {
 }
 
 .topbar-side {
-  flex: 1;
   display: flex;
   align-items: center;
   min-width: 0;
   height: 100%;
 }
 
-.topbar-side-right {
-  justify-content: flex-end;
-}
-
 .topbar-nav {
   display: flex;
   align-items: center;
+  gap: 22px;
+  flex-shrink: 0;
+}
+
+.topbar-nav-right {
   gap: 14px;
+}
+
+.topbar-right-zone {
+  display: flex;
+  align-items: center;
+  gap: 24px;
   flex-shrink: 0;
 }
 
@@ -221,6 +228,23 @@ html, body {
 .nav-pill:hover { background: var(--surface); color: var(--fg); }
 .nav-pill.active { background: var(--accent-soft); color: var(--accent); }
 
+/* Left zone (Settings + Home) is emphasized — larger and more spaced out,
+   matching the reference layout where the leftmost controls read as primary. */
+.topbar-nav-left .icon-button {
+  width: 48px;
+  height: 48px;
+}
+
+.topbar-nav-left .icon-button svg {
+  width: 21px;
+  height: 21px;
+}
+
+.topbar-nav-left .nav-pill {
+  font-size: 15px;
+  padding: 13px 24px;
+}
+
 .window-controls {
   display: flex;
   align-items: center;
@@ -280,14 +304,18 @@ html, body {
 
 .bg-square {
   position: absolute;
-  border: 3px solid rgba(140, 150, 190, 0.35);
-  border-radius: 4px;
+  background-repeat: no-repeat;
+  background-size: contain;
+  image-rendering: pixelated;
+  opacity: 0.55;
 }
 
-.bg-square.filled {
-  border: none;
-  background: rgba(110, 120, 160, 0.28);
-}
+.bg-square.cube-1 { background-image: url("assets/bg-cubes/cube-1.png"); }
+.bg-square.cube-2 { background-image: url("assets/bg-cubes/cube-2.png"); }
+.bg-square.cube-3 { background-image: url("assets/bg-cubes/cube-3.png"); }
+.bg-square.cube-4 { background-image: url("assets/bg-cubes/cube-4.png"); }
+.bg-square.cube-5 { background-image: url("assets/bg-cubes/cube-5.png"); }
+.bg-square.cube-filled { background-image: url("assets/bg-cubes/cube-filled.png"); }
 
 .bg-square.pulse {
   animation: bg-square-pulse ease-in-out infinite;
