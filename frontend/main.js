@@ -9,8 +9,10 @@ const MAX_YAW = 0.55;   // radians, ~31.5deg either side
 const MAX_PITCH = 0.35; // radians, ~20deg either side
 const TRACK_SMOOTHING = 0.12; // lerp factor per animation frame (lower = smoother/slower)
 const MAX_CLIENTS = 2;
-const BOUNCE_AMPLITUDE = 0.06; // model-space units the head/body bobs up/down
-const BOUNCE_SPEED = 1.3;      // radians per second fed into the sine wave
+const MIN_BOUNCE_SPEED = 0.2;
+const MAX_BOUNCE_SPEED = 4.0;
+const MIN_BOUNCE_AMPLITUDE = 0.0;
+const MAX_BOUNCE_AMPLITUDE = 0.2;
 
 const ACCENT_PRESETS = ["#8B5CF6", "#22C55E", "#3B82F6", "#F97316", "#EC4899", "#EAB308"];
 
@@ -211,6 +213,7 @@ async function init() {
     renderFontSelector();
     renderModelToggle();
     renderHeadBounceToggle();
+    renderHeadBounceSliders();
     renderClientList();
     renderDirectory();
 
@@ -308,6 +311,8 @@ async function saveAppearance() {
     fontFamily: settings.font_family,
     modelView: settings.model_view,
     headBounceEnabled: settings.head_bounce_enabled,
+    headBounceSpeed: settings.head_bounce_speed,
+    headBounceAmplitude: settings.head_bounce_amplitude,
   });
   applyAppearance();
 }
@@ -386,6 +391,57 @@ function renderHeadBounceToggle() {
   });
 }
 
+function renderHeadBounceSliders() {
+  const speedInput = document.getElementById("head-bounce-speed");
+  const speedValue = document.getElementById("head-bounce-speed-value");
+  const ampInput = document.getElementById("head-bounce-amplitude");
+  const ampValue = document.getElementById("head-bounce-amplitude-value");
+
+  speedInput.min = MIN_BOUNCE_SPEED;
+  speedInput.max = MAX_BOUNCE_SPEED;
+  speedInput.step = 0.1;
+  ampInput.min = MIN_BOUNCE_AMPLITUDE;
+  ampInput.max = MAX_BOUNCE_AMPLITUDE;
+  ampInput.step = 0.01;
+
+  function syncUI() {
+    speedInput.value = settings.head_bounce_speed;
+    speedValue.textContent = `${settings.head_bounce_speed.toFixed(1)}x`;
+    ampInput.value = settings.head_bounce_amplitude;
+    ampValue.textContent = settings.head_bounce_amplitude.toFixed(2);
+  }
+
+  syncUI();
+
+  // Live-update the visible bounce while dragging; only persist (and clamp
+  // server-side) once the user releases the slider, to avoid spamming saves.
+  speedInput.addEventListener("input", () => {
+    settings.head_bounce_speed = parseFloat(speedInput.value);
+    speedValue.textContent = `${settings.head_bounce_speed.toFixed(1)}x`;
+  });
+  speedInput.addEventListener("change", async () => {
+    try {
+      await saveAppearance();
+    } catch (err) {
+      console.error("saveAppearance (bounce speed) failed:", err);
+    }
+    syncUI();
+  });
+
+  ampInput.addEventListener("input", () => {
+    settings.head_bounce_amplitude = parseFloat(ampInput.value);
+    ampValue.textContent = settings.head_bounce_amplitude.toFixed(2);
+  });
+  ampInput.addEventListener("change", async () => {
+    try {
+      await saveAppearance();
+    } catch (err) {
+      console.error("saveAppearance (bounce amplitude) failed:", err);
+    }
+    syncUI();
+  });
+}
+
 // Switches which viewer is mounted (head glTF vs. full-body skinview3d).
 // Persisting the choice is handled by the caller via saveAppearance().
 function setActiveModelView(view, { skipSave = false } = {}) {
@@ -445,7 +501,7 @@ function startTrackingLoop() {
     // model already sits at — toggleable in Settings, off means the
     // offset just settles back to 0 rather than the loop stopping.
     const bounceOffset = settings && settings.head_bounce_enabled
-      ? Math.sin((performance.now() - bounceStart) / 1000 * BOUNCE_SPEED) * BOUNCE_AMPLITUDE
+      ? Math.sin((performance.now() - bounceStart) / 1000 * settings.head_bounce_speed) * settings.head_bounce_amplitude
       : 0;
 
     if (headModelRoot && homeVisible) {
@@ -484,10 +540,11 @@ function initHeadRenderer() {
   }
   headRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-  const ambient = new THREE.AmbientLight(0xffffff, 0.9);
-  const directional = new THREE.DirectionalLight(0xffffff, 0.6);
-  directional.position.set(2, 3, 4);
-  headScene.add(ambient, directional);
+  // Fullbright: ambient-only lighting at full intensity so every face of the
+  // model reads at its true texture color with no shading/shadow, regardless
+  // of its orientation to a directional source.
+  const ambient = new THREE.AmbientLight(0xffffff, 1.0);
+  headScene.add(ambient);
 
   const loader = new GLTFLoader();
   loader.load(
@@ -496,11 +553,22 @@ function initHeadRenderer() {
       headModelRoot = gltf.scene;
       headScene.add(headModelRoot);
 
-      // Grab the material off the first mesh so a skin swap can update its
-      // texture later (both the Head and Hat Layer meshes share one material).
+      // Fullbright: MeshStandardMaterial (Blockbench's glTF default) is still
+      // lit/PBR-shaded even under ambient-only light, so faces facing away
+      // from nothing still darken at grazing angles. Swap to MeshBasicMaterial,
+      // which ignores scene lighting entirely and always renders the texture
+      // at its true color. Grab the resulting material off the first mesh so
+      // a skin swap can update its texture later (Head + Hat Layer share one).
       headModelRoot.traverse((obj) => {
-        if (obj.isMesh && !headMaterial) {
-          headMaterial = obj.material;
+        if (obj.isMesh) {
+          const prev = obj.material;
+          obj.material = new THREE.MeshBasicMaterial({
+            map: prev.map || null,
+            transparent: prev.transparent,
+            alphaTest: prev.alphaTest,
+            side: prev.side,
+          });
+          if (!headMaterial) headMaterial = obj.material;
         }
       });
 
@@ -583,6 +651,11 @@ function initBodyViewer() {
   bodyViewer.controls.enablePan = false;
   bodyViewer.camera.position.set(0, 0, 60);
   bodyViewer.zoom = 0.9;
+
+  // Fullbright: ambient-only, no camera point light means no shading/shadow
+  // regardless of the player model's rotation.
+  bodyViewer.globalLight.intensity = 1.0;
+  bodyViewer.cameraLight.intensity = 0.0;
 
   resizeBodyViewer();
 }

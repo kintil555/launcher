@@ -59,7 +59,21 @@ pub struct AppSettings {
     /// Whether the home-page player head/body gently bobs up and down.
     #[serde(default = "default_head_bounce_enabled")]
     pub head_bounce_enabled: bool,
+    /// Bounce cycles per second, clamped to [MIN_HEAD_BOUNCE_SPEED, MAX_HEAD_BOUNCE_SPEED].
+    #[serde(default = "default_head_bounce_speed")]
+    pub head_bounce_speed: f32,
+    /// Bounce amplitude in model-space units, clamped to [MIN_HEAD_BOUNCE_AMPLITUDE, MAX_HEAD_BOUNCE_AMPLITUDE].
+    #[serde(default = "default_head_bounce_amplitude")]
+    pub head_bounce_amplitude: f32,
 }
+
+/// Bounds for head_bounce_speed (radians/sec fed into the sine wave on the frontend).
+pub const MIN_HEAD_BOUNCE_SPEED: f32 = 0.2;
+pub const MAX_HEAD_BOUNCE_SPEED: f32 = 4.0;
+
+/// Bounds for head_bounce_amplitude (model-space units).
+pub const MIN_HEAD_BOUNCE_AMPLITUDE: f32 = 0.0;
+pub const MAX_HEAD_BOUNCE_AMPLITUDE: f32 = 0.2;
 
 impl Default for AppSettings {
     fn default() -> Self {
@@ -73,6 +87,8 @@ impl Default for AppSettings {
             font_family: default_font_family(),
             model_view: default_model_view(),
             head_bounce_enabled: default_head_bounce_enabled(),
+            head_bounce_speed: default_head_bounce_speed(),
+            head_bounce_amplitude: default_head_bounce_amplitude(),
         }
     }
 }
@@ -95,6 +111,14 @@ fn default_model_view() -> ModelView {
 
 fn default_head_bounce_enabled() -> bool {
     true
+}
+
+fn default_head_bounce_speed() -> f32 {
+    1.3
+}
+
+fn default_head_bounce_amplitude() -> f32 {
+    0.06
 }
 
 pub fn default_launcher_directory() -> String {

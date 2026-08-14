@@ -310,11 +310,11 @@ html, body {
      the full rectangular stage skewed the perspective and made the model
      look off-center. Sized below 100% so the head reads as a focal object
      floating above the launch card, rather than filling the whole stage. */
-  width: min(66%, 66%);
-  height: min(66%, 66%);
+  width: min(79%, 79%);
+  height: min(79%, 79%);
   aspect-ratio: 1 / 1;
-  max-width: 66%;
-  max-height: 66%;
+  max-width: 79%;
+  max-height: 79%;
   display: block;
   position: absolute;
   top: 44%;
@@ -324,20 +324,20 @@ html, body {
 }
 
 .launch-row {
-  max-width: 720px;
+  max-width: 780px;
   margin: 0 auto;
   width: 100%;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: 20px;
   position: relative;
   z-index: 2;
   background: var(--surface);
   border: 1px solid var(--surface-border);
-  border-radius: 16px;
-  padding: 16px 22px;
+  border-radius: 18px;
+  padding: 20px 26px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
@@ -400,10 +400,11 @@ html, body {
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btn-launch-main {
-  font-size: 16px;
-  padding: 14px 46px;
-  border-radius: 12px;
+  font-size: 20px;
+  padding: 20px 56px;
+  border-radius: 14px;
   flex-shrink: 0;
+  min-width: 260px;
 }
 
 .btn-secondary {
@@ -474,6 +475,64 @@ html, body {
 
 .settings-toggle-row .settings-hint {
   margin: 0;
+}
+
+.settings-slider-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.settings-slider-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-slider-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  min-width: 34px;
+  text-align: right;
+}
+
+.settings-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-border);
+  outline: none;
+  cursor: pointer;
+}
+
+.settings-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+  cursor: pointer;
+}
+
+.settings-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+  cursor: pointer;
+}
+
+.settings-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-border);
 }
 
 .settings-label {

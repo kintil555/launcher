@@ -74,6 +74,8 @@ fn update_appearance(
     font_family: String,
     model_view: ModelView,
     head_bounce_enabled: bool,
+    head_bounce_speed: f32,
+    head_bounce_amplitude: f32,
     state: State<AppState>,
 ) -> Result<AppSettings, String> {
     let mut settings = state.settings.lock().unwrap();
@@ -81,6 +83,14 @@ fn update_appearance(
     settings.font_family = font_family;
     settings.model_view = model_view;
     settings.head_bounce_enabled = head_bounce_enabled;
+    settings.head_bounce_speed = head_bounce_speed.clamp(
+        settings::MIN_HEAD_BOUNCE_SPEED,
+        settings::MAX_HEAD_BOUNCE_SPEED,
+    );
+    settings.head_bounce_amplitude = head_bounce_amplitude.clamp(
+        settings::MIN_HEAD_BOUNCE_AMPLITUDE,
+        settings::MAX_HEAD_BOUNCE_AMPLITUDE,
+    );
     settings::save(&settings).map_err(|e| e.to_string())?;
     Ok(settings.clone())
 }
