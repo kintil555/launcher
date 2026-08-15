@@ -618,24 +618,19 @@ function sizeModelCanvas(canvas) {
   // Square sized off the stage's shorter/constraining axis (its height, since
   // the stage is always much wider than tall), capped so it can never exceed
   // the stage's width either.
-  // 98% of stage height: the user asked for +20% over the previous 88%
-  // (which would be ~106%), but confirmed a math check showed 106% exceeds
-  // the stage's own height, making clipping unavoidable at any top position.
-  // 98% is the accepted compromise — still noticeably bigger than 88%, and
-  // small enough that a safe top position (see below) actually exists.
-  const side = Math.min(stageRect.height * 0.98, stageRect.width * 0.98);
+  // User marked the exact target spot on a screenshot: noticeably lower than
+  // dead-center, close to the launch card. At 98% there was only ~1% margin
+  // to work with (couldn't reach that spot without clipping) — shrinking to
+  // 62% opens up real headroom so the position below can actually be honored.
+  const side = Math.min(stageRect.height * 0.62, stageRect.width * 0.62);
 
   canvas.style.width = `${side}px`;
   canvas.style.height = `${side}px`;
-  // At 98% size, half the canvas height is 49% of the stage — leaving only
-  // ~1% margin on either side of dead-center before clipping. 50% (exact
-  // center) is the only position with headroom on both edges; anything
-  // lower/higher would clip top or bottom respectively.
   canvas.style.left = `${stageRect.width / 2 - side / 2}px`;
-  // At 98% size, half the canvas height is 49% of the stage, leaving only
-  // ~1% of margin total. 51% is the maximum safe top before the bottom edge
-  // clips — as low as this size allows without shrinking it.
-  canvas.style.top = `${stageRect.height * 0.51 - side / 2}px`;
+  // Matches the spot the user circled in their reference screenshot: well
+  // below dead-center, close to the launch card. Safe up to 69% at this
+  // size (half-height=31%, so top must stay <= 100%-31%=69%).
+  canvas.style.top = `${stageRect.height * 0.67 - side / 2}px`;
 
   return canvas.getBoundingClientRect();
 }
