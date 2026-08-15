@@ -582,9 +582,20 @@ function initHeadRenderer() {
       // Fit the camera distance to the model's actual size instead of a
       // fixed z, since a hardcoded distance only looked right for the old
       // model's scale and made this smaller model render tiny.
+      //
+      // The old 1.15x margin only accounted for the model's static bounding
+      // sphere — it didn't leave room for the head-bounce animation (moves
+      // the model up to MAX_BOUNCE_AMPLITUDE along Y) or the mouse-follow
+      // tilt (rotates up to MAX_YAW/MAX_PITCH, which swings corners of a
+      // non-spherical mesh like the hat layer further from center than the
+      // resting bounding sphere implies). That's the actual root cause of
+      // clipping that kept reappearing regardless of the CSS canvas box:
+      // the camera framing itself was too tight for the model in motion,
+      // not the canvas position/size on the page.
       const sphere = box.getBoundingSphere(new THREE.Sphere());
       headModelRadius = sphere.radius;
-      const fitDistance = (sphere.radius / Math.sin((headCamera.fov * Math.PI) / 360)) * 1.15;
+      const motionMargin = sphere.radius + MAX_BOUNCE_AMPLITUDE; // worst-case distance from center during bounce
+      const fitDistance = (motionMargin / Math.sin((headCamera.fov * Math.PI) / 360)) * 1.35;
       headCamera.position.set(0, 0, fitDistance);
       headCamera.near = fitDistance / 100;
       headCamera.far = fitDistance * 100;
@@ -618,19 +629,19 @@ function sizeModelCanvas(canvas) {
   // Square sized off the stage's shorter/constraining axis (its height, since
   // the stage is always much wider than tall), capped so it can never exceed
   // the stage's width either.
-  // User marked the exact target spot on a screenshot: noticeably lower than
-  // dead-center, close to the launch card. At 98% there was only ~1% margin
-  // to work with (couldn't reach that spot without clipping) — shrinking to
-  // 62% opens up real headroom so the position below can actually be honored.
-  const side = Math.min(stageRect.height * 0.62, stageRect.width * 0.62);
+  // Camera framing now has proper margin for the bounce/tilt animation (see
+  // initHeadRenderer's fitDistance fix), so the actual root cause of
+  // clipping is fixed — this CSS box no longer needs to be kept artificially
+  // small to avoid it.
+  const side = Math.min(stageRect.height * 0.88, stageRect.width * 0.88);
 
   canvas.style.width = `${side}px`;
   canvas.style.height = `${side}px`;
   canvas.style.left = `${stageRect.width / 2 - side / 2}px`;
-  // Matches the spot the user circled in their reference screenshot: well
-  // below dead-center, close to the launch card. Safe up to 69% at this
-  // size (half-height=31%, so top must stay <= 100%-31%=69%).
-  canvas.style.top = `${stageRect.height * 0.67 - side / 2}px`;
+  // Close to the spot the user circled in their reference screenshot (well
+  // below dead-center, near the launch card), within this size's safe bound
+  // (half-height=44%, so top must stay <= 100%-44%=56%).
+  canvas.style.top = `${stageRect.height * 0.56 - side / 2}px`;
 
   return canvas.getBoundingClientRect();
 }
@@ -680,7 +691,10 @@ function initBodyViewer() {
   bodyViewer.controls.enableRotate = false;
   bodyViewer.controls.enablePan = false;
   bodyViewer.camera.position.set(0, 0, 60);
-  bodyViewer.zoom = 0.9;
+  // Zoomed out slightly further than a tight fit to leave headroom for the
+  // head-bounce animation (moves the model along Y up to MAX_BOUNCE_AMPLITUDE)
+  // — same clipping-during-motion issue fixed on the head camera above.
+  bodyViewer.zoom = 0.82;
 
   // Fullbright: ambient-only, no camera point light means no shading/shadow
   // regardless of the player model's rotation.
