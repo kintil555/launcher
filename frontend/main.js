@@ -605,11 +605,43 @@ function initHeadRenderer() {
   resizeHeadRenderer();
 }
 
+// Sizes and positions a model canvas as an explicit pixel square derived from
+// the live .model-stage box, then returns the resulting rect. Bypassing
+// CSS %/aspect-ratio here guarantees the box getBoundingClientRect() reports
+// right after is exactly what was computed, so the Three.js/skinview3d camera
+// aspect set from that rect can never disagree with what's actually rendered.
+function sizeModelCanvas(canvas) {
+  const stage = canvas.closest(".model-stage");
+  if (!stage) return canvas.getBoundingClientRect();
+
+  const stageRect = stage.getBoundingClientRect();
+  // Square sized off the stage's shorter/constraining axis (its height, since
+  // the stage is always much wider than tall), capped so it can never exceed
+  // the stage's width either.
+  // 98% of stage height: the user asked for +20% over the previous 88%
+  // (which would be ~106%), but confirmed a math check showed 106% exceeds
+  // the stage's own height, making clipping unavoidable at any top position.
+  // 98% is the accepted compromise — still noticeably bigger than 88%, and
+  // small enough that a safe top position (see below) actually exists.
+  const side = Math.min(stageRect.height * 0.98, stageRect.width * 0.98);
+
+  canvas.style.width = `${side}px`;
+  canvas.style.height = `${side}px`;
+  // At 98% size, half the canvas height is 49% of the stage — leaving only
+  // ~1% margin on either side of dead-center before clipping. 50% (exact
+  // center) is the only position with headroom on both edges; anything
+  // lower/higher would clip top or bottom respectively.
+  canvas.style.left = `${stageRect.width / 2 - side / 2}px`;
+  canvas.style.top = `${stageRect.height * 0.5 - side / 2}px`;
+
+  return canvas.getBoundingClientRect();
+}
+
 function resizeHeadRenderer() {
   if (!headRenderer) return;
 
   const canvas = document.getElementById("head-canvas");
-  const rect = canvas.getBoundingClientRect();
+  const rect = sizeModelCanvas(canvas);
   if (rect.width === 0 || rect.height === 0) return;
 
   headRenderer.setSize(rect.width, rect.height, false);
@@ -664,7 +696,7 @@ function resizeBodyViewer() {
   if (!bodyViewer) return;
 
   const canvas = document.getElementById("body-canvas");
-  const rect = canvas.getBoundingClientRect();
+  const rect = sizeModelCanvas(canvas);
   if (rect.width === 0 || rect.height === 0) return;
 
   bodyViewer.setSize(rect.width, rect.height);

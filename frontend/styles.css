@@ -306,21 +306,16 @@ html, body {
 
 #head-canvas,
 #body-canvas {
-  /* The stage is much wider than it is tall (full window width, limited
-     vertical space above the launch card), so sizing off a % of BOTH width
-     and height independently — even with aspect-ratio set — let the wider
-     axis win out, stretching/off-centering the canvas (confirmed via user
-     screenshots). Sizing off height alone and letting aspect-ratio derive
-     width guarantees a true 1:1 square that's always centered and always
-     fits inside the stage's vertical bounds. */
-  height: 78%;
-  width: auto;
-  aspect-ratio: 1 / 1;
+  /* Sized in JS (see sizeModelCanvas in main.js) as an explicit pixel square
+     derived from the live .model-stage box. CSS-only sizing (%/aspect-ratio
+     on an absolutely-positioned element) proved unreliable across two prior
+     attempts — width:auto failed to resolve consistently from aspect-ratio,
+     so the canvas's actual rendered box didn't match what the numbers here
+     implied, causing off-center stretch and clipping that moved unpredictably
+     when top/height were adjusted. JS reads the stage's real box each time,
+     so what's computed is guaranteed to be what's rendered. */
   display: block;
   position: absolute;
-  top: 60%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   z-index: 1;
 }
 
