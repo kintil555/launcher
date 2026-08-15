@@ -317,7 +317,7 @@ html, body {
   max-height: 88%;
   display: block;
   position: absolute;
-  top: 54%;
+  top: 58%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 1;

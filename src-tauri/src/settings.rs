@@ -118,7 +118,7 @@ fn default_head_bounce_speed() -> f32 {
 }
 
 fn default_head_bounce_amplitude() -> f32 {
-    0.06
+    0.03
 }
 
 pub fn default_launcher_directory() -> String {
