@@ -306,18 +306,19 @@ html, body {
 
 #head-canvas,
 #body-canvas {
-  /* Centered square so the camera aspect stays 1:1 — a canvas stretched to
-     the full rectangular stage skewed the perspective and made the model
-     look off-center. Sized below 100% so the head reads as a focal object
-     floating above the launch card, rather than filling the whole stage. */
-  width: min(88%, 88%);
-  height: min(88%, 88%);
+  /* The stage is much wider than it is tall (full window width, limited
+     vertical space above the launch card), so sizing off a % of BOTH width
+     and height independently — even with aspect-ratio set — let the wider
+     axis win out, stretching/off-centering the canvas (confirmed via user
+     screenshots). Sizing off height alone and letting aspect-ratio derive
+     width guarantees a true 1:1 square that's always centered and always
+     fits inside the stage's vertical bounds. */
+  height: 78%;
+  width: auto;
   aspect-ratio: 1 / 1;
-  max-width: 88%;
-  max-height: 88%;
   display: block;
   position: absolute;
-  top: 58%;
+  top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 1;
