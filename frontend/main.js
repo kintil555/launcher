@@ -632,7 +632,10 @@ function sizeModelCanvas(canvas) {
   // center) is the only position with headroom on both edges; anything
   // lower/higher would clip top or bottom respectively.
   canvas.style.left = `${stageRect.width / 2 - side / 2}px`;
-  canvas.style.top = `${stageRect.height * 0.5 - side / 2}px`;
+  // At 98% size, half the canvas height is 49% of the stage, leaving only
+  // ~1% of margin total. 51% is the maximum safe top before the bottom edge
+  // clips — as low as this size allows without shrinking it.
+  canvas.style.top = `${stageRect.height * 0.51 - side / 2}px`;
 
   return canvas.getBoundingClientRect();
 }
