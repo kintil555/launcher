@@ -427,6 +427,7 @@ html, body {
   flex: 1;
   min-height: 0;
   overflow: visible;
+  position: relative;
 }
 
 .page {
@@ -437,6 +438,38 @@ html, body {
 .page.active {
   display: flex;
   flex-direction: column;
+  animation: page-in 0.22s ease both;
+}
+
+/* #page-skins holds a skinview3d WebGL canvas. display:none gives an element
+   no layout box at all, and constructing/sizing a WebGL renderer against a
+   canvas with no real layout box (even briefly, even one frame earlier)
+   leaves the renderer's internal state permanently wrong -- the preview
+   stayed dark forever after, no resize call afterward fixed it, because
+   requestAnimationFrame() only guarantees a paint has happened, not that
+   the canvas had a genuine layout box at construction time. Keep this page
+   always laid out (never display:none) and hide it via opacity/stacking
+   instead, so its canvas always has real dimensions from the moment the
+   app starts and the viewer only ever gets built once, the same way the
+   Home page's head/body viewers do (built at startup, on an always-visible
+   page, and never dark).
+*/
+#page-skins {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+#page-skins.active {
+  position: relative;
+  opacity: 1;
+  pointer-events: auto;
+  z-index: auto;
   animation: page-in 0.22s ease both;
 }
 
