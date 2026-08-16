@@ -13,12 +13,30 @@ permissions:
   contents: write
 
 jobs:
-  bump-and-tag:
+  debug-context:
     runs-on: ubuntu-latest
-    # Guard against an infinite loop: the version-bump commit below is made
-    # by github-actions[bot] and includes "[skip release]" in its message,
-    # so this job ignores pushes that are themselves a bump commit.
-    if: "!contains(github.event.head_commit.message, '[skip release]')"
+    steps:
+      - name: Dump push event context
+        run: |
+          echo "head_commit.message: ${{ toJSON(github.event.head_commit.message) }}"
+          echo "head_commit.author.username: ${{ toJSON(github.event.head_commit.author.username) }}"
+          echo "head_commit.author.email: ${{ toJSON(github.event.head_commit.author.email) }}"
+          echo "pusher.name: ${{ toJSON(github.event.pusher.name) }}"
+
+  bump-and-tag:
+    needs: debug-context
+    runs-on: ubuntu-latest
+    # Guard against an infinite loop: the version-bump commit below is
+    # authored by github-actions[bot], so this job skips any push whose
+    # most recent commit came from that bot account. Checking the commit
+    # author instead of scanning the commit message for a marker string
+    # avoids relying on github.event.head_commit.message, which isn't
+    # reliably populated for every push (e.g. multi-commit pushes, or
+    # pushes made via some non-standard git clients). Wrapped in ${{ }}
+    # explicitly — bare `if:` expressions starting with special characters
+    # or relying on implicit evaluation have known parser quirks across
+    # GitHub's own tooling; ${{ }} is the unambiguous form.
+    if: ${{ github.event.head_commit.author.username != 'github-actions[bot]' }}
 
     steps:
       - uses: actions/checkout@v4
