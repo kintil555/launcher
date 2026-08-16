@@ -36,6 +36,15 @@ let targetPitch = 0;
 let currentYaw = 0;
 let currentPitch = 0;
 
+// Click-to-spin state. When the head is clicked it does one full spin, then
+// eases back to whatever the mouse-follow position is via a back-out curve
+// (a slight overshoot past the resting angle before settling), rather than
+// snapping straight back.
+let spinActive = false;
+let spinStartTime = 0;
+const SPIN_DURATION_MS = 900;
+const SPIN_TURNS = 1; // full rotations added on top of the resting yaw
+
 let currentSkinSrc = null;
 
 // --- Window chrome (custom titlebar) -------------------------------------
@@ -464,6 +473,21 @@ function setActiveModelView(view, { skipSave = false } = {}) {
 
 // --- Home page: pointer tracking (shared by both viewers) -----------------
 
+// Standard "back out" easing (Penner-style): overshoots past 1.0 before
+// settling, giving the spin a springy, decisive finish instead of a linear
+// or ease-out stop.
+function easeOutBack(t) {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+}
+
+function triggerHeadSpin() {
+  if (spinActive) return; // ignore repeat clicks mid-spin
+  spinActive = true;
+  spinStartTime = performance.now();
+}
+
 function startTrackingLoop() {
   // Track relative to whichever model canvas is currently visible, but
   // listen on the whole window — the head/body should keep following the
@@ -495,6 +519,19 @@ function startTrackingLoop() {
     currentYaw += (targetYaw - currentYaw) * TRACK_SMOOTHING;
     currentPitch += (targetPitch - currentPitch) * TRACK_SMOOTHING;
 
+    // Click-to-spin: adds one extra full rotation on top of the resting
+    // mouse-follow yaw, eased out with a back-out curve so it overshoots
+    // slightly before settling back onto the resting angle.
+    let spinOffset = 0;
+    if (spinActive) {
+      const elapsed = performance.now() - spinStartTime;
+      const t = Math.min(1, elapsed / SPIN_DURATION_MS);
+      const eased = easeOutBack(t);
+      spinOffset = (1 - eased) * SPIN_TURNS * Math.PI * 2;
+
+      if (t >= 1) spinActive = false;
+    }
+
     const homeVisible = document.getElementById("page-home").classList.contains("active");
 
     // Gentle up/down bob, layered on top of whatever base position the
@@ -507,15 +544,15 @@ function startTrackingLoop() {
     if (headModelRoot && homeVisible) {
       // Blockbench's exported front face points away from the camera by
       // default — add a 180° base offset so the face looks toward the
-      // viewer, then layer the mouse-follow rotation on top.
-      headModelRoot.rotation.y = Math.PI + currentYaw;
+      // viewer, then layer the mouse-follow rotation and spin on top.
+      headModelRoot.rotation.y = Math.PI + currentYaw + spinOffset;
       headModelRoot.rotation.x = currentPitch;
       headModelRoot.position.y = bounceOffset;
       headRenderer.render(headScene, headCamera);
     }
 
     if (bodyViewer && homeVisible && document.getElementById("body-canvas").style.display !== "none") {
-      bodyViewer.playerObject.rotation.y = currentYaw;
+      bodyViewer.playerObject.rotation.y = currentYaw + spinOffset;
       bodyViewer.playerObject.position.y = bounceOffset;
     }
 
@@ -523,6 +560,9 @@ function startTrackingLoop() {
   }
 
   requestAnimationFrame(tick);
+
+  headCanvas.addEventListener("click", triggerHeadSpin);
+  bodyCanvas.addEventListener("click", triggerHeadSpin);
 }
 
 // --- Home page: head viewer (Three.js + glTF) ------------------------------

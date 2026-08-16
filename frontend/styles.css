@@ -327,8 +327,16 @@ html, body {
   animation: hb-float ease-in-out infinite, hb-scale ease-in-out infinite;
 }
 
-.hb-hollow { fill: none; stroke: rgba(255, 255, 255, 0.9); }
-.hb-fill { fill: rgba(255, 255, 255, 0.9); stroke: none; }
+/* Base square color #7D839C, with a spread of lighter/darker shades and
+   varied opacity across individual squares so the field doesn't read as
+   one flat tone — mirrors the varied grays in the reference. */
+.hb-hollow { fill: none; stroke: #7D839C; }
+.hb-fill { fill: #7D839C; stroke: none; }
+
+.hb-shade-dark   { stroke: #565A6D; fill: #565A6D; opacity: 0.75; }
+.hb-shade-mid    { stroke: #7D839C; fill: #7D839C; opacity: 0.65; }
+.hb-shade-light  { stroke: #A6ABBF; fill: #A6ABBF; opacity: 0.55; }
+.hb-shade-lighter{ stroke: #C6C9D6; fill: #C6C9D6; opacity: 0.45; }
 
 @keyframes hb-float {
   0%, 100% { translate: 0 0; }
@@ -353,6 +361,7 @@ html, body {
   display: block;
   position: absolute;
   z-index: 1;
+  cursor: pointer;
 }
 
 .launch-row {
@@ -438,6 +447,7 @@ html, body {
   border-radius: 14px;
   flex-shrink: 0;
   min-width: 260px;
+  text-shadow: 3px 3px 0px rgba(0, 0, 0, 0.58);
 }
 
 .btn-secondary {
