@@ -12,7 +12,7 @@
       {
         "title": "Ender Client",
         "width": 1180,
-        "height": 1020,
+        "height": 720,
         "resizable": false,
         "maximizable": false,
         "center": true,

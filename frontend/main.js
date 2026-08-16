@@ -588,14 +588,17 @@ function initHeadRenderer() {
       // the model up to MAX_BOUNCE_AMPLITUDE along Y) or the mouse-follow
       // tilt (rotates up to MAX_YAW/MAX_PITCH, which swings corners of a
       // non-spherical mesh like the hat layer further from center than the
-      // resting bounding sphere implies). That's the actual root cause of
-      // clipping that kept reappearing regardless of the CSS canvas box:
-      // the camera framing itself was too tight for the model in motion,
-      // not the canvas position/size on the page.
+      // resting bounding sphere implies). motionMargin below already covers
+      // the bounce distance, so the multiplier here only needs to be a thin
+      // safety buffer on top of that (not a second full margin) — bringing
+      // it down from 1.35 to 1.05 zooms the camera in noticeably closer,
+      // making the head fill much more of the same canvas frame without
+      // needing a taller window/stage (which was the wrong lever — see the
+      // reverted 0b308eb window-height approach).
       const sphere = box.getBoundingSphere(new THREE.Sphere());
       headModelRadius = sphere.radius;
       const motionMargin = sphere.radius + MAX_BOUNCE_AMPLITUDE; // worst-case distance from center during bounce
-      const fitDistance = (motionMargin / Math.sin((headCamera.fov * Math.PI) / 360)) * 1.35;
+      const fitDistance = (motionMargin / Math.sin((headCamera.fov * Math.PI) / 360)) * 1.05;
       headCamera.position.set(0, 0, fitDistance);
       headCamera.near = fitDistance / 100;
       headCamera.far = fitDistance * 100;
@@ -690,10 +693,10 @@ function initBodyViewer() {
   bodyViewer.controls.enableRotate = false;
   bodyViewer.controls.enablePan = false;
   bodyViewer.camera.position.set(0, 0, 60);
-  // Zoomed out slightly further than a tight fit to leave headroom for the
-  // head-bounce animation (moves the model along Y up to MAX_BOUNCE_AMPLITUDE)
-  // — same clipping-during-motion issue fixed on the head camera above.
-  bodyViewer.zoom = 0.82;
+  // Zoomed in close, with just enough margin to cover the head-bounce
+  // animation's Y offset — matches the head camera's approach (fill the
+  // frame rather than relying on a bigger window/stage).
+  bodyViewer.zoom = 0.95;
 
   // Fullbright: ambient-only, no camera point light means no shading/shadow
   // regardless of the player model's rotation.
