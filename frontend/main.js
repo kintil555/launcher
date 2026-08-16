@@ -862,8 +862,6 @@ function initClientSelectorDropdown() {
     }
   });
 }
-  renderMenu();
-}
 
 document.getElementById("launch-button").addEventListener("click", launchGame);
 document.getElementById("launch-button-mini").addEventListener("click", launchGame);
