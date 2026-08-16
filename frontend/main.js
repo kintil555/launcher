@@ -217,6 +217,7 @@ async function init() {
     setActiveModelView(settings.model_view, { skipSave: true });
 
     renderClientSelector();
+    initClientSelectorDropdown();
     syncSourceModeUI();
     renderColorSwatches();
     renderFontSelector();
@@ -778,7 +779,6 @@ function resizeBodyViewer() {
 function renderClientSelector() {
   const menu = document.getElementById("client-selector-menu");
   const label = document.getElementById("client-selector-label");
-  const button = document.getElementById("client-selector-button");
 
   function updateLabel() {
     const names = settings.selected_client_names;
@@ -836,8 +836,23 @@ function renderClientSelector() {
     }
   }
 
+  updateLabel();
+  renderMenu();
+}
+
+// Dropdown open/close wiring — attached exactly once at startup rather than
+// inside renderClientSelector(), which gets called again every time a
+// client is added/removed. Re-attaching listeners on every render was
+// stacking duplicate handlers that fought each other (one click could
+// toggle "open" on then immediately back off), which is why the dropdown
+// stopped responding after adding a client and only recovered on restart.
+function initClientSelectorDropdown() {
+  const menu = document.getElementById("client-selector-menu");
+  const button = document.getElementById("client-selector-button");
+
   button.addEventListener("click", (e) => {
     e.stopPropagation();
+    if (button.disabled) return;
     menu.classList.toggle("open");
   });
 
@@ -846,8 +861,7 @@ function renderClientSelector() {
       menu.classList.remove("open");
     }
   });
-
-  updateLabel();
+}
   renderMenu();
 }
 

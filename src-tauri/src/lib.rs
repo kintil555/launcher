@@ -15,6 +15,33 @@ struct AppState {
     settings: Mutex<AppSettings>,
 }
 
+/// Entry point for the elevated helper invocation (see main.rs). Expects
+/// `args = [pid, dll_path, dll_path, ...]` and performs the injection directly, with no
+/// Tauri app / window involved — this process exists only to run briefly under
+/// administrator rights and exit. Returns the process exit code: 0 on success, 1 on
+/// failure (malformed args or an injection error).
+pub fn run_elevated_inject(args: &[String]) -> i32 {
+    let Some((pid_arg, dll_paths)) = args.split_first() else {
+        return 1;
+    };
+
+    let Ok(pid) = pid_arg.parse::<u32>() else {
+        return 1;
+    };
+
+    if dll_paths.is_empty() {
+        return 1;
+    }
+
+    for dll in dll_paths {
+        if injector::inject(pid, dll).is_err() {
+            return 1;
+        }
+    }
+
+    0
+}
+
 #[tauri::command]
 fn get_settings(state: State<AppState>) -> AppSettings {
     state.settings.lock().unwrap().clone()

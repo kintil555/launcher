@@ -12,6 +12,22 @@ use windows::Win32::System::Threading::{
     PROCESS_ALL_ACCESS,
 };
 
+/// Win32 ERROR_ACCESS_DENIED. HRESULTs from the windows crate wrap this as 0x80070005 —
+/// see is_access_denied's caller for how it's unwrapped from that.
+const ERROR_ACCESS_DENIED_WIN32: u32 = 5;
+
+/// Sentinel string used internally to signal "this specific failure was an access-denied
+/// error" up through the `Result<(), String>` chain, so launcher.rs can decide whether to
+/// retry elevated without injector.rs needing to know anything about elevation itself.
+const ACCESS_DENIED_MARKER: &str = "__ACCESS_DENIED__";
+
+/// True if `inject`'s error was specifically an access-denied failure from OpenProcess,
+/// as opposed to any other failure (missing DLL, bad path, thread creation failure, etc.)
+/// that retrying elevated wouldn't fix.
+pub fn is_access_denied(err: &str) -> bool {
+    err == ACCESS_DENIED_MARKER
+}
+
 /// Injects a DLL into a running process via the classic LoadLibraryW + CreateRemoteThread
 /// technique — the same approach used by the original C# Injector. LoadLibraryW's own
 /// signature (`extern "system" fn(*mut c_void) -> u32` once resolved) already matches
@@ -32,9 +48,15 @@ pub fn inject(process_id: u32, dll_path: &str) -> Result<(), String> {
 
         let start_routine: LPTHREAD_START_ROUTINE = std::mem::transmute(load_library_addr);
 
-        let process = OpenProcess(PROCESS_ALL_ACCESS, false, process_id).map_err(|_| {
-            "Failed to open the Minecraft process. Try running Ender Client as Administrator."
-                .to_string()
+        let process = OpenProcess(PROCESS_ALL_ACCESS, false, process_id).map_err(|e| {
+            // HRESULT 0x80070005 wraps Win32 ERROR_ACCESS_DENIED (5) in its low 16 bits
+            // via FACILITY_WIN32 — mask those out rather than comparing the raw HRESULT.
+            let win32_code = (e.code().0 as u32) & 0xFFFF;
+            if win32_code == ERROR_ACCESS_DENIED_WIN32 {
+                ACCESS_DENIED_MARKER.to_string()
+            } else {
+                format!("Failed to open the Minecraft process: {e}")
+            }
         })?;
 
         let path_bytes: Vec<u16> = dll_path.encode_utf16().chain(std::iter::once(0)).collect();

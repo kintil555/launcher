@@ -329,14 +329,22 @@ html, body {
 
 /* Base square color #7D839C, with a spread of lighter/darker shades and
    varied opacity across individual squares so the field doesn't read as
-   one flat tone — mirrors the varied grays in the reference. */
+   one flat tone — mirrors the varied grays in the reference. Hollow
+   squares only ever set stroke (fill stays none); filled squares only
+   ever set fill (stroke stays none) — kept as separate rules so a shade
+   class can't accidentally fill in a square that's meant to be an outline. */
 .hb-hollow { fill: none; stroke: #7D839C; }
 .hb-fill { fill: #7D839C; stroke: none; }
 
-.hb-shade-dark   { stroke: #565A6D; fill: #565A6D; opacity: 0.75; }
-.hb-shade-mid    { stroke: #7D839C; fill: #7D839C; opacity: 0.65; }
-.hb-shade-light  { stroke: #A6ABBF; fill: #A6ABBF; opacity: 0.55; }
-.hb-shade-lighter{ stroke: #C6C9D6; fill: #C6C9D6; opacity: 0.45; }
+.hb-hollow.hb-shade-dark    { stroke: #565A6D; opacity: 0.75; }
+.hb-hollow.hb-shade-mid     { stroke: #7D839C; opacity: 0.65; }
+.hb-hollow.hb-shade-light   { stroke: #A6ABBF; opacity: 0.55; }
+.hb-hollow.hb-shade-lighter { stroke: #C6C9D6; opacity: 0.45; }
+
+.hb-fill.hb-shade-dark    { fill: #565A6D; opacity: 0.75; }
+.hb-fill.hb-shade-mid     { fill: #7D839C; opacity: 0.65; }
+.hb-fill.hb-shade-light   { fill: #A6ABBF; opacity: 0.55; }
+.hb-fill.hb-shade-lighter { fill: #C6C9D6; opacity: 0.45; }
 
 @keyframes hb-float {
   0%, 100% { translate: 0 0; }
