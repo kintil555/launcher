@@ -459,7 +459,38 @@ html, body {
   justify-content: center;
   width: 100%;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+}
+
+/* Click-to-spin sprinkle burst — pure CSS pop/drift/fade, spawned and
+   removed by JS (spawnSprinkles in main.js). Positioned absolute-center
+   over the model stage, then flies outward via --sx/--sy/--srot custom
+   properties set per-particle. */
+.head-sprinkle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  font-size: 22px;
+  pointer-events: none;
+  transform: translate(-50%, -50%) translate(0, 0) rotate(0deg) scale(0.4);
+  opacity: 0;
+  animation: sprinkle-burst 700ms ease-out forwards;
+  z-index: 5;
+}
+
+@keyframes sprinkle-burst {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 0) rotate(0deg) scale(0.4);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translate(calc(var(--sx) * 0.3), calc(var(--sy) * 0.3)) rotate(calc(var(--srot) * 0.3)) scale(1.1);
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(var(--sx), var(--sy)) rotate(var(--srot)) scale(0.7);
+    opacity: 0;
+  }
 }
 
 .head-backdrop {

@@ -44,6 +44,7 @@ let spinActive = false;
 let spinStartTime = 0;
 const SPIN_DURATION_MS = 900;
 const SPIN_TURNS = 1; // full rotations added on top of the resting yaw
+const SPIN_ROLL_MAX = 0.5; // radians of z-axis roll/tilt layered into the spin
 
 let currentSkinSrc = null;
 
@@ -488,6 +489,30 @@ function triggerHeadSpin() {
   if (spinActive) return; // ignore repeat clicks mid-spin
   spinActive = true;
   spinStartTime = performance.now();
+  spawnSprinkles();
+}
+
+// Bursts a handful of emoji "sprinkles" from the model-stage center that
+// pop out, drift, and fade — purely a DOM/CSS effect layered over the
+// canvas, so it doesn't touch the three.js scene at all.
+const SPRINKLE_EMOJI = ["✨", "🎉", "⭐"];
+function spawnSprinkles() {
+  const stage = document.querySelector(".model-stage");
+  if (!stage) return;
+  const count = 10;
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement("span");
+    el.className = "head-sprinkle";
+    el.textContent = SPRINKLE_EMOJI[Math.floor(Math.random() * SPRINKLE_EMOJI.length)];
+    const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+    const dist = 70 + Math.random() * 90;
+    el.style.setProperty("--sx", `${Math.cos(angle) * dist}px`);
+    el.style.setProperty("--sy", `${Math.sin(angle) * dist - 20}px`);
+    el.style.setProperty("--srot", `${(Math.random() - 0.5) * 240}deg`);
+    el.style.animationDelay = `${Math.random() * 80}ms`;
+    stage.appendChild(el);
+    el.addEventListener("animationend", () => el.remove());
+  }
 }
 
 function startTrackingLoop() {
@@ -525,11 +550,16 @@ function startTrackingLoop() {
     // mouse-follow yaw, eased out with a back-out curve so it overshoots
     // slightly before settling back onto the resting angle.
     let spinOffset = 0;
+    let spinRoll = 0;
     if (spinActive) {
       const elapsed = performance.now() - spinStartTime;
       const t = Math.min(1, elapsed / SPIN_DURATION_MS);
       const eased = easeOutBack(t);
       spinOffset = (1 - eased) * SPIN_TURNS * Math.PI * 2;
+      // One full sine cycle of roll over the spin's duration: tilts one way,
+      // back through center, tilts the other way, then settles flat — so
+      // the head wobbles on the z-axis instead of spinning on a flat plane.
+      spinRoll = Math.sin(t * Math.PI * 2) * SPIN_ROLL_MAX * (1 - t);
 
       if (t >= 1) spinActive = false;
     }
@@ -549,12 +579,14 @@ function startTrackingLoop() {
       // viewer, then layer the mouse-follow rotation and spin on top.
       headModelRoot.rotation.y = Math.PI + currentYaw + spinOffset;
       headModelRoot.rotation.x = currentPitch;
+      headModelRoot.rotation.z = spinRoll;
       headModelRoot.position.y = bounceOffset;
       headRenderer.render(headScene, headCamera);
     }
 
     if (bodyViewer && homeVisible && document.getElementById("body-canvas").style.display !== "none") {
       bodyViewer.playerObject.rotation.y = currentYaw + spinOffset;
+      bodyViewer.playerObject.rotation.z = spinRoll;
       bodyViewer.playerObject.position.y = bounceOffset;
     }
 
