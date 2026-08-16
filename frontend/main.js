@@ -629,27 +629,26 @@ function sizeModelCanvas(canvas) {
   if (!stage) return canvas.getBoundingClientRect();
 
   const stageRect = stage.getBoundingClientRect();
-  // Square sized off the stage's shorter/constraining axis (its height, since
-  // the stage is always much wider than tall), capped so it can never exceed
-  // the stage's width either.
-  // Camera framing now has proper margin for the bounce/tilt animation (see
-  // initHeadRenderer's fitDistance fix), so the actual root cause of
-  // clipping is fixed — this CSS box no longer needs to be kept artificially
-  // small to avoid it.
-  // Shrunk slightly from 100% to open real vertical headroom for
-  // positioning (see top below) — safe to do now because the head's visual
-  // size mostly comes from the camera zoom (fitDistance fix, 8c4b633), not
-  // from this box being as large as possible. A 90% box still reads as a
-  // large head, and unlocks room to move it down.
-  const side = Math.min(stageRect.height * 0.9, stageRect.width * 0.9);
+  // Blueberry Client (the design reference) sizes its own head-canvas as a
+  // FIXED pixel square (481px, confirmed from their saved page's inline
+  // canvas style) rather than a percentage of its stage — that's the actual
+  // reason their head reads as consistently large regardless of the stage's
+  // own proportions: it isn't fighting for a % share of variable space.
+  // Match that: fixed target size, clamped down only if the stage is
+  // smaller than that (so it still can't overflow on an unexpectedly small
+  // window).
+  const TARGET_HEAD_PX = 500;
+  const side = Math.min(TARGET_HEAD_PX, stageRect.height * 0.95, stageRect.width * 0.95);
 
   canvas.style.width = `${side}px`;
   canvas.style.height = `${side}px`;
   canvas.style.left = `${stageRect.width / 2 - side / 2}px`;
-  // At 90% size, half-height = 45% of stage, so top can go up to 55% before
-  // clipping the CSS box's bottom edge — placed close to that safe max to
-  // sit near "Choose Skin..." below.
-  canvas.style.top = `${stageRect.height * 0.55 - side / 2}px`;
+  // Positioned low in the stage (close to "Choose Skin..."/launch card
+  // below), within the safe bound for whichever of the two clamps above
+  // ends up applying: half-height can't exceed stageRect.height - side/2.
+  const maxTop = stageRect.height - side / 2 - 4; // 4px safety margin
+  const desiredTop = stageRect.height * 0.68 - side / 2;
+  canvas.style.top = `${Math.min(desiredTop, maxTop)}px`;
 
   return canvas.getBoundingClientRect();
 }
