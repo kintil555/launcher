@@ -636,14 +636,20 @@ function sizeModelCanvas(canvas) {
   // initHeadRenderer's fitDistance fix), so the actual root cause of
   // clipping is fixed — this CSS box no longer needs to be kept artificially
   // small to avoid it.
-  const side = Math.min(stageRect.height * 1.0, stageRect.width * 1.0);
+  // Shrunk slightly from 100% to open real vertical headroom for
+  // positioning (see top below) — safe to do now because the head's visual
+  // size mostly comes from the camera zoom (fitDistance fix, 8c4b633), not
+  // from this box being as large as possible. A 90% box still reads as a
+  // large head, and unlocks room to move it down.
+  const side = Math.min(stageRect.height * 0.9, stageRect.width * 0.9);
 
   canvas.style.width = `${side}px`;
   canvas.style.height = `${side}px`;
   canvas.style.left = `${stageRect.width / 2 - side / 2}px`;
-  // At 100% size, half-height = 50% of stage, so top must be exact center
-  // (50%) to avoid clipping the CSS box itself top or bottom.
-  canvas.style.top = `${stageRect.height * 0.5 - side / 2}px`;
+  // At 90% size, half-height = 45% of stage, so top can go up to 55% before
+  // clipping the CSS box's bottom edge — placed close to that safe max to
+  // sit near "Choose Skin..." below.
+  canvas.style.top = `${stageRect.height * 0.55 - side / 2}px`;
 
   return canvas.getBoundingClientRect();
 }
