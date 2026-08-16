@@ -213,7 +213,11 @@ pub fn import_skin_file(source_path: String) -> Result<SkinEntry, String> {
     let file_name = source
         .file_name()
         .ok_or_else(|| "Selected file has no name.".to_string())?;
-    let out_path = dir.join(file_name);
+
+    // If a skin with this exact filename already exists, don't silently
+    // overwrite it — append " (2)", " (3)", etc. until we find a name that's
+    // free, the same way Windows Explorer handles a copy/paste collision.
+    let out_path = unique_destination(dir, file_name);
 
     std::fs::copy(&source, &out_path).map_err(|e| e.to_string())?;
 
@@ -221,4 +225,40 @@ pub fn import_skin_file(source_path: String) -> Result<SkinEntry, String> {
         filename: out_path.file_name().unwrap_or_default().to_string_lossy().to_string(),
         path: out_path.to_string_lossy().to_string(),
     })
+}
+
+/// Returns `dir/file_name`, or if that path already exists, `dir/file_name (2)`,
+/// `dir/file_name (3)`, etc. — the first one that doesn't already exist on disk.
+fn unique_destination(dir: &std::path::Path, file_name: &std::ffi::OsStr) -> PathBuf {
+    let candidate = dir.join(file_name);
+    if !candidate.exists() {
+        return candidate;
+    }
+
+    let name = std::path::Path::new(file_name);
+    let stem = name.file_stem().and_then(|s| s.to_str()).unwrap_or("skin");
+    let ext = name.extension().and_then(|s| s.to_str());
+
+    for n in 2..1000 {
+        let numbered = match ext {
+            Some(ext) => format!("{stem} ({n}).{ext}"),
+            None => format!("{stem} ({n})"),
+        };
+        let candidate = dir.join(numbered);
+        if !candidate.exists() {
+            return candidate;
+        }
+    }
+
+    // Astronomically unlikely fallback so this always terminates.
+    dir.join(format!("{stem} ({})", uuid_like_suffix()))
+}
+
+fn uuid_like_suffix() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.subsec_nanos())
+        .unwrap_or(0);
+    format!("{nanos}")
 }

@@ -363,6 +363,16 @@ function renderSkinCard(skin) {
       if (selectedSkinPath === skin.path) {
         selectedSkinPath = null;
         document.getElementById("skin-apply-button").disabled = true;
+        document.getElementById("skin-preview-name").textContent = "Select a skin";
+        // Reset the big preview back to a neutral default instead of
+        // leaving it showing the skin that was just deleted — without
+        // this, the 3D preview kept displaying a skin no longer in the
+        // list (and no longer on disk) until the user picked another one.
+        if (skinsPreviewViewer) {
+          skinsPreviewViewer
+            .loadSkin("assets/steve_default.png")
+            .then(() => forceFullbright(skinsPreviewViewer.playerObject, "assets/steve_default.png"));
+        }
       }
       await loadSkinsGrid();
     } catch (err) {
@@ -446,6 +456,8 @@ function initSkinsPreviewViewer() {
   skinsPreviewViewer.controls.enablePan = false;
   skinsPreviewViewer.camera.position.set(0, 0, 60);
   skinsPreviewViewer.zoom = 0.9;
+  // Same sRGB output fix as headRenderer/bodyViewer.
+  skinsPreviewViewer.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   // Fullbright: ambient-only, no camera point light means no shading/shadow
   // regardless of the player model's rotation — same config as bodyViewer,
@@ -480,6 +492,16 @@ async function loadSkinsGrid() {
   selectedSkinPath = null;
   document.getElementById("skin-apply-button").disabled = true;
   document.getElementById("skin-preview-name").textContent = "Select a skin";
+
+  // Same reasoning as the delete handler: nothing is selected at this
+  // point, so the 3D preview shouldn't keep showing whatever skin was
+  // loaded into it last (e.g. from before the user switched away from
+  // this tab and back).
+  if (skinsPreviewViewer) {
+    skinsPreviewViewer
+      .loadSkin("assets/steve_default.png")
+      .then(() => forceFullbright(skinsPreviewViewer.playerObject, "assets/steve_default.png"));
+  }
 
   resizeSkinsPreviewViewer();
 
@@ -975,6 +997,12 @@ function initHeadRenderer() {
     console.error("headRenderer: WebGL context creation failed");
   }
   headRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  // Without this, MeshBasicMaterial's sRGB-tagged texture (see
+  // applySkinToHeadModel's texture.colorSpace = SRGBColorSpace) gets treated
+  // as already-linear on output, which reads as harsher/more saturated
+  // contrast than the flat, true-to-source colors a fullbright preview
+  // should have — this is the missing half of that sRGB handling.
+  headRenderer.outputColorSpace = THREE.SRGBColorSpace;
 
   // Fullbright: ambient-only lighting at full intensity so every face of the
   // model reads at its true texture color with no shading/shadow, regardless
@@ -1150,6 +1178,11 @@ function initBodyViewer() {
   // animation's Y offset — matches the head camera's approach (fill the
   // frame rather than relying on a bigger window/stage).
   bodyViewer.zoom = 0.95;
+  // Same sRGB output fix as headRenderer — without it the fullbright
+  // MeshBasicMaterial skin reads noticeably higher-contrast/oversaturated
+  // than intended, since the sRGB-tagged texture ends up treated as linear
+  // on output.
+  bodyViewer.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   // Fullbright: ambient-only, no camera point light means no shading/shadow
   // regardless of the player model's rotation. globalLight/cameraLight tuning
