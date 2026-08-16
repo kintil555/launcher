@@ -58,6 +58,23 @@ pub fn set_active_skin(path: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Deletes a single skin PNG from wherever it lives in custom_skins. Only
+/// deletes paths that actually resolve inside one of the known
+/// custom_skins candidate dirs, so this can't be used to delete arbitrary
+/// files even if a bogus path were ever passed in.
+#[tauri::command]
+pub fn delete_skin(path: String) -> Result<(), String> {
+    let target = PathBuf::from(&path);
+
+    let dirs = custom_skins_dirs();
+    let in_known_dir = dirs.iter().any(|dir| target.parent() == Some(dir.as_path()));
+    if !in_known_dir {
+        return Err("That file is not in a recognized custom_skins folder.".to_string());
+    }
+
+    std::fs::remove_file(&target).map_err(|e| e.to_string())
+}
+
 #[derive(Deserialize)]
 struct MojangProfileLookup {
     id: String,

@@ -242,6 +242,12 @@
             <p id="directory-status" class="status-text"></p>
           </div>
 
+          <div class="settings-card">
+            <h2>Danger zone</h2>
+            <p class="settings-hint">Deletes the launcher's own settings and downloaded files (clients, extensions). Your Latite module settings inside Minecraft are not affected.</p>
+            <button id="delete-all-data-button" class="btn-danger">Delete all launcher data</button>
+          </div>
+
         </div>
       </section>
 
@@ -255,6 +261,17 @@
       <div class="confirm-actions">
         <button id="signout-cancel-button" class="btn-secondary">Cancel</button>
         <button id="signout-confirm-button" class="btn-primary">Sign out</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confirm-overlay hidden" id="delete-data-confirm-overlay">
+    <div class="confirm-card">
+      <p class="confirm-title">Delete all launcher data?</p>
+      <p class="confirm-body">This removes your settings, saved clients, and downloaded files. Your Latite module settings inside Minecraft are kept. This can't be undone.</p>
+      <div class="confirm-actions">
+        <button id="delete-data-cancel-button" class="btn-secondary">Cancel</button>
+        <button id="delete-data-confirm-button" class="btn-danger">Delete everything</button>
       </div>
     </div>
   </div>

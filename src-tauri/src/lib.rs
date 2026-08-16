@@ -182,6 +182,47 @@ fn find_active_skin_path() -> Option<String> {
     minecraft::find_active_skin_path()
 }
 
+/// Deletes everything the launcher itself has written to disk — settings.json,
+/// downloaded client/extension DLLs, version markers — while leaving
+/// `Configs/` (Latite's own module settings, written by the client at
+/// runtime, not by the launcher) completely untouched.
+///
+/// After wiping, in-memory settings reset to defaults and settings.json is
+/// re-created immediately so the launcher_directory itself (and Configs/
+/// inside it, if it exists) isn't left dangling with nothing describing it.
+#[tauri::command]
+fn delete_all_launcher_data(state: State<AppState>) -> Result<AppSettings, String> {
+    let launcher_directory = {
+        let settings = state.settings.lock().unwrap();
+        settings.launcher_directory.clone()
+    };
+
+    let dir = std::path::PathBuf::from(&launcher_directory);
+    if dir.exists() {
+        let entries = std::fs::read_dir(&dir).map_err(|e| e.to_string())?;
+        for entry in entries.filter_map(|e| e.ok()) {
+            let path = entry.path();
+            if path.file_name().and_then(|n| n.to_str()) == Some("Configs") {
+                continue;
+            }
+            let result = if path.is_dir() {
+                std::fs::remove_dir_all(&path)
+            } else {
+                std::fs::remove_file(&path)
+            };
+            result.map_err(|e| e.to_string())?;
+        }
+    }
+
+    let mut settings = state.settings.lock().unwrap();
+    *settings = AppSettings {
+        launcher_directory,
+        ..Default::default()
+    };
+    settings::save(&settings).map_err(|e| e.to_string())?;
+    Ok(settings.clone())
+}
+
 #[tauri::command]
 fn launch_minecraft(client_dll_paths: Vec<String>) -> Result<(), String> {
     launcher::launch(&client_dll_paths)
@@ -207,6 +248,7 @@ pub fn run() {
             open_directory,
             open_url,
             find_active_skin_path,
+            delete_all_launcher_data,
             launch_minecraft,
             list_modules,
             set_module_enabled,
@@ -220,6 +262,7 @@ pub fn run() {
             skins::set_active_skin,
             skins::fetch_skin_by_username,
             skins::import_skin_file,
+            skins::delete_skin,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Ender Client");

@@ -656,6 +656,23 @@ html, body {
 .btn-secondary:hover { border-color: var(--accent); }
 .btn-secondary:active { transform: scale(0.97); }
 
+.btn-danger {
+  background: rgba(229, 72, 77, 0.12);
+  color: #ff6b70;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(229, 72, 77, 0.4);
+  border-radius: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+
+.btn-danger:hover { background: rgba(229, 72, 77, 0.22); }
+.btn-danger:active { transform: scale(0.97); }
+.btn-danger:disabled { opacity: 0.6; cursor: default; }
+
 /* Settings page */
 #page-settings {
   padding: 28px 32px;
@@ -1123,6 +1140,7 @@ select:focus, input[type="text"]:focus {
 }
 
 .skin-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1142,6 +1160,32 @@ select:focus, input[type="text"]:focus {
   border-color: rgba(140, 150, 255, 0.7);
   background: rgba(124, 92, 255, 0.15);
 }
+
+.skin-card-delete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 16, 35, 0.75);
+  border: 1px solid rgba(140, 150, 190, 0.25);
+  border-radius: 5px;
+  color: #b9bcdb;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1;
+}
+
+.skin-card-delete:hover {
+  background: rgba(229, 72, 77, 0.25);
+  border-color: rgba(229, 72, 77, 0.5);
+  color: #ff6b70;
+}
+
+.skin-card-delete:disabled { opacity: 0.5; cursor: default; }
 
 .skin-card-thumb {
   width: 48px;

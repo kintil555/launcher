@@ -264,10 +264,18 @@ function drawSkinFaceThumbnail(canvas, img) {
 }
 
 function renderSkinCard(skin) {
-  const card = document.createElement("button");
-  card.type = "button";
+  const card = document.createElement("div");
   card.className = "skin-card";
+  card.setAttribute("role", "button");
+  card.setAttribute("tabindex", "0");
   card.dataset.path = skin.path;
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "skin-card-delete";
+  deleteBtn.title = "Delete skin";
+  deleteBtn.setAttribute("aria-label", "Delete skin");
+  deleteBtn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
 
   const thumb = document.createElement("canvas");
   thumb.className = "skin-card-thumb";
@@ -278,6 +286,7 @@ function renderSkinCard(skin) {
   label.className = "skin-card-name";
   label.textContent = skin.filename.replace(/\.png$/i, "");
 
+  card.appendChild(deleteBtn);
   card.appendChild(thumb);
   card.appendChild(label);
 
@@ -286,6 +295,28 @@ function renderSkinCard(skin) {
   img.src = convertFileSrc(skin.path);
 
   card.addEventListener("click", () => selectSkin(skin, card));
+  card.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      selectSkin(skin, card);
+    }
+  });
+
+  deleteBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    deleteBtn.disabled = true;
+    try {
+      await invoke("delete_skin", { path: skin.path });
+      if (selectedSkinPath === skin.path) {
+        selectedSkinPath = null;
+        document.getElementById("skin-apply-button").disabled = true;
+      }
+      await loadSkinsGrid();
+    } catch (err) {
+      console.error("delete_skin failed:", err);
+      deleteBtn.disabled = false;
+    }
+  });
 
   return card;
 }
@@ -394,6 +425,20 @@ document.getElementById("skin-apply-button")?.addEventListener("click", async ()
 
 // --- Init ---------------------------------------------------------------
 
+function refreshSettingsUI() {
+  applyAppearance();
+  renderClientSelector();
+  syncSourceModeUI();
+  renderColorSwatches();
+  renderFontSelector();
+  renderModelToggle();
+  renderHeadBounceToggle();
+  renderHeadBounceSliders();
+  renderClientList();
+  renderDirectory();
+  renderAccountChip();
+}
+
 async function init() {
   try {
     settings = await invoke("get_settings");
@@ -403,17 +448,8 @@ async function init() {
     initBodyViewer();
     setActiveModelView(settings.model_view, { skipSave: true });
 
-    renderClientSelector();
     initClientSelectorDropdown();
-    syncSourceModeUI();
-    renderColorSwatches();
-    renderFontSelector();
-    renderModelToggle();
-    renderHeadBounceToggle();
-    renderHeadBounceSliders();
-    renderClientList();
-    renderDirectory();
-    renderAccountChip();
+    refreshSettingsUI();
 
     await loadActiveSkin();
 
@@ -1240,6 +1276,38 @@ document.getElementById("change-folder-button").addEventListener("click", async 
   renderDirectory();
   document.getElementById("directory-status").textContent = "Directory updated.";
 });
+
+// --- Danger zone: delete all launcher data ---------------------------------
+
+{
+  const deleteButton = document.getElementById("delete-all-data-button");
+  const overlay = document.getElementById("delete-data-confirm-overlay");
+  const cancelButton = document.getElementById("delete-data-cancel-button");
+  const confirmButton = document.getElementById("delete-data-confirm-button");
+
+  deleteButton.addEventListener("click", () => overlay.classList.remove("hidden"));
+  cancelButton.addEventListener("click", () => overlay.classList.add("hidden"));
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.classList.add("hidden");
+  });
+
+  confirmButton.addEventListener("click", async () => {
+    confirmButton.disabled = true;
+    confirmButton.textContent = "Deleting...";
+    try {
+      settings = await invoke("delete_all_launcher_data");
+      refreshSettingsUI();
+      document.getElementById("directory-status").textContent = "All launcher data deleted.";
+    } catch (err) {
+      console.error("delete_all_launcher_data failed:", err);
+      document.getElementById("directory-status").textContent = "Failed to delete: " + (err?.message || err);
+    } finally {
+      confirmButton.disabled = false;
+      confirmButton.textContent = "Delete everything";
+      overlay.classList.add("hidden");
+    }
+  });
+}
 
 // --- Discord account chip -------------------------------------------------
 
