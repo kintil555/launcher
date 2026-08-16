@@ -55,8 +55,8 @@ html, body {
 .topbar {
   display: flex;
   align-items: center;
-  height: 76px;
-  min-height: 76px;
+  height: 64px;
+  min-height: 64px;
   padding: 0 22px;
   background: var(--window-bg);
   position: relative;
@@ -333,7 +333,7 @@ html, body {
   background: var(--surface);
   border: 1px solid var(--surface-border);
   border-radius: 18px;
-  padding: 20px 26px;
+  padding: 16px 26px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
