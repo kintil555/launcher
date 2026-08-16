@@ -63,7 +63,7 @@ html, body {
      stays position:absolute (falls into this 4th column via DOM order/
      auto-placement, but renders nothing visible in it since it's out of
      flow) — this column exists purely to balance the width calculation. */
-  grid-template-columns: 1fr auto 1fr 66px;
+  grid-template-columns: 66px 1fr auto 1fr 66px;
   align-items: center;
   height: 64px;
   min-height: 64px;
