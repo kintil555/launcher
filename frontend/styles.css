@@ -53,14 +53,15 @@ html, body {
 /* ---------------- Top bar ---------------- */
 
 .topbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   height: 64px;
   min-height: 64px;
   padding: 0 22px;
+  padding-right: 96px; /* keeps grid content clear of the absolutely-positioned window controls */
   background: var(--window-bg);
   position: relative;
-  gap: 12px;
 }
 
 .topbar::after {
@@ -73,47 +74,37 @@ html, body {
   background: var(--surface-border);
 }
 
-.topbar-side {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  height: 100%;
-}
-
 .topbar-side-right {
-  margin-left: 0;
-  flex-shrink: 0;
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
-/* Left-hand nav group (account chip, Settings, Home) — sits in normal flex
-   flow on the left. Allowed to shrink (min-width: 0) so it never gets
-   pushed under the centered toggle as it grows. */
+/* Left-hand nav group (account chip, Settings, Home) — right-aligned within
+   its 1fr grid column, so it sits close to the centered toggle rather than
+   pinned to the far edge of the window. */
 .topbar-nav {
   display: flex;
   align-items: center;
   gap: 14px;
-  flex-shrink: 1;
+  justify-self: end;
   min-width: 0;
-  overflow: hidden;
 }
 
-/* Right-hand nav group (Modules, Extensions) — mirrors .topbar-nav but sits
-   after the toggle, so Release/Custom stays visually centered between the
-   two nav groups instead of being pushed off-center by one wider side. */
+/* Right-hand nav group (Modules, Extensions) — left-aligned within its 1fr
+   grid column, mirroring .topbar-nav so both groups sit an equal distance
+   from the centered toggle. */
 .topbar-nav-right {
-  flex-shrink: 0;
-  overflow: visible;
+  justify-self: start;
 }
 
-/* Release/Custom toggle — sits in its own flex-1 middle column, so it's
-   centered in whatever space is actually left between the two nav groups,
-   rather than fixed to the absolute center of the whole titlebar where a
-   wider nav group can run into it. */
+/* Release/Custom toggle — the grid's middle "auto" column, so it's always
+   exactly centered on the titlebar regardless of how wide either nav group
+   is, instead of being pushed off-center by an uneven flex distribution. */
 .source-toggle-column {
-  flex: 1;
   display: flex;
   justify-content: center;
-  min-width: 0;
 }
 
 .source-toggle {
