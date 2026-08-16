@@ -4,6 +4,7 @@ mod launcher;
 mod minecraft;
 mod modules;
 mod settings;
+mod skins;
 mod updater;
 
 use modules::{list_modules, set_module_enabled};
@@ -215,6 +216,9 @@ pub fn run() {
             set_jod_enabled,
             discord_login,
             discord_logout,
+            skins::list_custom_skins,
+            skins::set_active_skin,
+            skins::fetch_skin_by_username,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Ender Client");

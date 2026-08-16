@@ -42,6 +42,7 @@
 
       <nav class="topbar-nav topbar-nav-right" data-tauri-drag-region>
         <button id="modules-nav-button" class="nav-pill" data-page="modules">Modules</button>
+        <button id="skins-nav-button" class="nav-pill" data-page="skins">Skins</button>
         <button id="extensions-nav-button" class="nav-pill" data-page="extensions">Extensions</button>
       </nav>
 
@@ -122,6 +123,27 @@
         </div>
         <div id="modules-status" class="modules-status"></div>
         <div id="modules-list" class="modules-list"></div>
+      </section>
+
+      <section id="page-skins" class="page">
+        <header class="page-header">
+          <h1>Skins</h1>
+        </header>
+
+        <div class="skins-fetch-row">
+          <input id="skin-username-input" class="skin-username-input" type="text" placeholder="Java username (e.g. Notch)" autocomplete="off">
+          <button id="skin-fetch-button" class="btn-primary skin-fetch-button">Fetch skin</button>
+        </div>
+        <div id="skins-status" class="modules-status"></div>
+
+        <div class="skins-body">
+          <div id="skins-grid" class="skins-grid"></div>
+          <div class="skins-preview-pane">
+            <canvas id="skin-preview-canvas"></canvas>
+            <p id="skin-preview-name" class="skin-preview-name">Select a skin</p>
+            <button id="skin-apply-button" class="btn-primary skin-apply-button" disabled>Set as active skin</button>
+          </div>
+        </div>
       </section>
 
       <section id="page-extensions" class="page">

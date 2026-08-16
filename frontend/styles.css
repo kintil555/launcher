@@ -1076,6 +1076,126 @@ select:focus, input[type="text"]:focus {
   margin: 0;
 }
 
+/* Skins page */
+.skins-fetch-row {
+  display: flex;
+  gap: 10px;
+  margin: 0 24px 12px;
+}
+
+.skin-username-input {
+  flex: 1;
+  padding: 9px 12px;
+  background: rgba(30, 25, 55, 0.6);
+  border: 1px solid rgba(140, 150, 190, 0.2);
+  border-radius: 8px;
+  color: #e5e6ff;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.skin-username-input::placeholder { color: rgba(207, 210, 255, 0.35); }
+.skin-username-input:focus {
+  outline: none;
+  border-color: rgba(140, 150, 255, 0.5);
+}
+
+.skin-fetch-button {
+  padding: 9px 18px;
+  font-size: 13px;
+}
+
+.skins-body {
+  display: flex;
+  gap: 20px;
+  padding: 8px 24px 24px;
+  min-height: 0;
+  flex: 1;
+}
+
+.skins-grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 10px;
+  align-content: start;
+  overflow-y: auto;
+}
+
+.skin-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 6px;
+  background: rgba(30, 25, 55, 0.5);
+  border: 1px solid rgba(140, 150, 190, 0.15);
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.skin-card:hover { border-color: rgba(140, 150, 190, 0.3); }
+
+.skin-card.selected {
+  border-color: rgba(140, 150, 255, 0.7);
+  background: rgba(124, 92, 255, 0.15);
+}
+
+.skin-card-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  image-rendering: pixelated;
+}
+
+.skin-card-name {
+  font-size: 11px;
+  color: #e5e6ff;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.skins-preview-pane {
+  width: 200px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  background: rgba(30, 25, 55, 0.4);
+  border: 1px solid rgba(140, 150, 190, 0.15);
+  border-radius: 10px;
+}
+
+#skin-preview-canvas {
+  width: 200px;
+  height: 280px;
+}
+
+.skin-preview-name {
+  margin: 0;
+  font-size: 13px;
+  color: #e5e6ff;
+  text-align: center;
+}
+
+.skin-apply-button {
+  width: 100%;
+  padding: 9px 0;
+  font-size: 13px;
+}
+
+.skin-apply-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 /* Extensions page */
 #page-extensions {
   padding: 0 24px 24px;

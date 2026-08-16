@@ -66,6 +66,23 @@ function showPage(pageName) {
   document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"));
   document.getElementById(`page-${pageName}`).classList.add("active");
 
+  document.getElementById("home-nav-button").classList.toggle("active", pageName === "home");
+  document.getElementById("settings-nav-button").classList.toggle("active", pageName === "settings");
+  document.getElementById("modules-nav-button").classList.toggle("active", pageName === "modules");
+  document.getElementById("skins-nav-button").classList.toggle("active", pageName === "skins");
+  document.getElementById("extensions-nav-button").classList.toggle("active", pageName === "extensions");
+
+  if (pageName === "modules") {
+    loadModulesList();
+  }
+  if (pageName === "skins") {
+    loadSkinsGrid();
+  }
+  if (pageName === "extensions") {
+    syncJodToggleUI();
+    checkAllExtensionUpdates();
+  }
+
   // The home page's .model-stage is display:none while another tab is
   // active, so any resize that fires during that time (window resize,
   // maximize/restore, DPI change) reads a 0x0 stage rect and shrinks the
@@ -78,33 +95,12 @@ function showPage(pageName) {
       resizeBodyViewer();
     });
   }
-
-  document.getElementById("home-nav-button").classList.toggle("active", pageName === "home");
-  document.getElementById("settings-nav-button").classList.toggle("active", pageName === "settings");
-  document.getElementById("modules-nav-button").classList.toggle("active", pageName === "modules");
-  document.getElementById("extensions-nav-button").classList.toggle("active", pageName === "extensions");
-
-  if (pageName === "modules") {
-    loadModulesList();
-  }
-  if (pageName === "extensions") {
-    syncJodToggleUI();
-    checkAllExtensionUpdates();
-  }
-
-  // The canvas has zero size while its page is hidden (display: none), so any
-  // renderer sized during that time ends up 0x0. Resize once the page is visible.
-  if (pageName === "home") {
-    requestAnimationFrame(() => {
-      resizeHeadRenderer();
-      resizeBodyViewer();
-    });
-  }
 }
 
 document.getElementById("home-nav-button").addEventListener("click", () => showPage("home"));
 document.getElementById("settings-nav-button").addEventListener("click", () => showPage("settings"));
 document.getElementById("modules-nav-button").addEventListener("click", () => showPage("modules"));
+document.getElementById("skins-nav-button").addEventListener("click", () => showPage("skins"));
 document.getElementById("extensions-nav-button").addEventListener("click", () => showPage("extensions"));
 
 // --- Extensions page --------------------------------------------------
@@ -249,6 +245,152 @@ document.getElementById("discord-join-button")?.addEventListener("click", () => 
   invoke("open_url", { url: "https://discord.gg/sPY8acc7Ny" }).catch((err) => {
     console.error("open_url failed:", err);
   });
+});
+
+// --- Skins page -------------------------------------------------------
+
+let skinsPreviewViewer = null;
+let selectedSkinPath = null;
+
+// Draws just the front-face layer (8x8 region at 8,8 in the standard 64x64
+// skin layout) scaled up into a small canvas -- cheap per-card thumbnail
+// instead of spinning up a full 3D viewer for every grid item.
+function drawSkinFaceThumbnail(canvas, img) {
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Base face (8,8 8x8) then the hat/overlay layer (40,8 8x8) on top, so
+  // skins using the second-layer hat still look right in the thumbnail.
+  ctx.drawImage(img, 8, 8, 8, 8, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 40, 8, 8, 8, 0, 0, canvas.width, canvas.height);
+}
+
+function renderSkinCard(skin) {
+  const card = document.createElement("button");
+  card.type = "button";
+  card.className = "skin-card";
+  card.dataset.path = skin.path;
+
+  const thumb = document.createElement("canvas");
+  thumb.className = "skin-card-thumb";
+  thumb.width = 48;
+  thumb.height = 48;
+
+  const label = document.createElement("span");
+  label.className = "skin-card-name";
+  label.textContent = skin.filename.replace(/\.png$/i, "");
+
+  card.appendChild(thumb);
+  card.appendChild(label);
+
+  const img = new Image();
+  img.onload = () => drawSkinFaceThumbnail(thumb, img);
+  img.src = convertFileSrc(skin.path);
+
+  card.addEventListener("click", () => selectSkin(skin, card));
+
+  return card;
+}
+
+function selectSkin(skin, cardEl) {
+  document.querySelectorAll(".skin-card.selected").forEach((c) => c.classList.remove("selected"));
+  cardEl.classList.add("selected");
+  selectedSkinPath = skin.path;
+
+  document.getElementById("skin-preview-name").textContent = skin.filename.replace(/\.png$/i, "");
+  document.getElementById("skin-apply-button").disabled = false;
+
+  const src = convertFileSrc(skin.path);
+  if (skinsPreviewViewer) {
+    skinsPreviewViewer.loadSkin(src);
+  }
+}
+
+function initSkinsPreviewViewer() {
+  if (skinsPreviewViewer) return;
+  const canvas = document.getElementById("skin-preview-canvas");
+  skinsPreviewViewer = new skinview3d.SkinViewer({
+    canvas,
+    width: 200,
+    height: 320,
+    skin: "assets/steve_default.png",
+  });
+  skinsPreviewViewer.background = null;
+  skinsPreviewViewer.controls.enableZoom = false;
+  skinsPreviewViewer.controls.enablePan = false;
+  skinsPreviewViewer.camera.position.set(0, 0, 60);
+  skinsPreviewViewer.zoom = 0.9;
+  skinsPreviewViewer.globalLight.intensity = 1.0;
+  skinsPreviewViewer.cameraLight.intensity = 0.0;
+  skinsPreviewViewer.autoRotate = true;
+  skinsPreviewViewer.autoRotateSpeed = 1.0;
+}
+
+async function loadSkinsGrid() {
+  const statusEl = document.getElementById("skins-status");
+  const gridEl = document.getElementById("skins-grid");
+  statusEl.textContent = "";
+  gridEl.innerHTML = "";
+  selectedSkinPath = null;
+  document.getElementById("skin-apply-button").disabled = true;
+  document.getElementById("skin-preview-name").textContent = "Select a skin";
+
+  initSkinsPreviewViewer();
+
+  let skinsList;
+  try {
+    skinsList = await invoke("list_custom_skins");
+  } catch (err) {
+    statusEl.textContent = err;
+    return;
+  }
+
+  if (skinsList.length === 0) {
+    statusEl.textContent = "No skins found in custom_skins yet.";
+    return;
+  }
+
+  for (const skin of skinsList) {
+    gridEl.appendChild(renderSkinCard(skin));
+  }
+}
+
+document.getElementById("skin-fetch-button")?.addEventListener("click", async () => {
+  const input = document.getElementById("skin-username-input");
+  const statusEl = document.getElementById("skins-status");
+  const btn = document.getElementById("skin-fetch-button");
+  const username = input.value;
+
+  btn.disabled = true;
+  statusEl.textContent = "Fetching...";
+  try {
+    await invoke("fetch_skin_by_username", { username });
+    input.value = "";
+    statusEl.textContent = "";
+    await loadSkinsGrid();
+  } catch (err) {
+    statusEl.textContent = err;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById("skin-username-input")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") document.getElementById("skin-fetch-button")?.click();
+});
+
+document.getElementById("skin-apply-button")?.addEventListener("click", async () => {
+  if (!selectedSkinPath) return;
+  const statusEl = document.getElementById("skins-status");
+  try {
+    await invoke("set_active_skin", { path: selectedSkinPath });
+    statusEl.textContent = "Applied. Your Home page skin will update.";
+    // Home page's active-skin display reads whichever file has the newest
+    // mtime; refresh it now so switching back to Home shows it immediately.
+    await loadActiveSkin();
+  } catch (err) {
+    statusEl.textContent = err;
+  }
 });
 
 
