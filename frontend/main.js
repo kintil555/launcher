@@ -66,6 +66,19 @@ function showPage(pageName) {
   document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"));
   document.getElementById(`page-${pageName}`).classList.add("active");
 
+  // The home page's .model-stage is display:none while another tab is
+  // active, so any resize that fires during that time (window resize,
+  // maximize/restore, DPI change) reads a 0x0 stage rect and shrinks the
+  // renderer/camera to 0 -- nothing then automatically re-sizes it back
+  // up when the user returns, so the head/body stay invisible. Force a
+  // resize on the next frame every time home becomes active again.
+  if (pageName === "home") {
+    requestAnimationFrame(() => {
+      resizeHeadRenderer();
+      resizeBodyViewer();
+    });
+  }
+
   document.getElementById("home-nav-button").classList.toggle("active", pageName === "home");
   document.getElementById("settings-nav-button").classList.toggle("active", pageName === "settings");
   document.getElementById("modules-nav-button").classList.toggle("active", pageName === "modules");
