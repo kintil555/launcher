@@ -172,6 +172,11 @@ fn open_directory(path: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+fn open_url(url: String) -> Result<(), String> {
+    open::that(&url).map_err(|e| format!("Could not open link: {e}"))
+}
+
+#[tauri::command]
 fn find_active_skin_path() -> Option<String> {
     minecraft::find_active_skin_path()
 }
@@ -199,6 +204,7 @@ pub fn run() {
             set_client_source_mode,
             update_appearance,
             open_directory,
+            open_url,
             find_active_skin_path,
             launch_minecraft,
             list_modules,

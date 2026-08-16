@@ -164,59 +164,92 @@ document.getElementById("jod-toggle").addEventListener("click", async () => {
 
 // --- Modules page ---------------------------------------------------------
 
-async function loadModulesList() {
-  const statusEl = document.getElementById("modules-status");
-  const listEl = document.getElementById("modules-list");
+let allModules = [];
 
-  statusEl.textContent = "";
+function renderModulesList(filterText = "") {
+  const listEl = document.getElementById("modules-list");
   listEl.innerHTML = "";
 
-  let modules;
-  try {
-    modules = await invoke("list_modules");
-  } catch (err) {
-    statusEl.textContent = err;
+  const query = filterText.trim().toLowerCase();
+  const filtered = query
+    ? allModules.filter((m) => m.name.toLowerCase().includes(query))
+    : allModules;
+
+  if (filtered.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "modules-empty";
+    empty.textContent = query ? `No modules match "${filterText}".` : "No modules found in the config yet.";
+    listEl.appendChild(empty);
     return;
   }
 
-  if (modules.length === 0) {
-    statusEl.textContent = "No modules found in the config yet.";
-    return;
-  }
+  for (const mod of filtered) {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "module-card" + (mod.enabled ? " on" : "");
+    card.setAttribute("role", "switch");
+    card.setAttribute("aria-checked", String(mod.enabled));
 
-  for (const mod of modules) {
-    const row = document.createElement("div");
-    row.className = "module-row";
+    card.innerHTML = `
+      <span class="module-card-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </span>
+      <span class="module-card-name">${mod.name}</span>
+      <span class="module-card-status">${mod.enabled ? "Enabled" : "Disabled"}</span>
+    `;
 
-    const label = document.createElement("span");
-    label.className = "module-name";
-    label.textContent = mod.name;
-
-    const toggle = document.createElement("button");
-    toggle.className = "module-toggle" + (mod.enabled ? " on" : "");
-    toggle.setAttribute("role", "switch");
-    toggle.setAttribute("aria-checked", String(mod.enabled));
-
-    toggle.addEventListener("click", async () => {
-      const nextEnabled = !toggle.classList.contains("on");
+    card.addEventListener("click", async () => {
+      const nextEnabled = !card.classList.contains("on");
       // Optimistic UI update; revert if the write fails so the toggle
       // never shows a state the file doesn't actually have.
-      toggle.classList.toggle("on", nextEnabled);
-      toggle.setAttribute("aria-checked", String(nextEnabled));
+      card.classList.toggle("on", nextEnabled);
+      card.setAttribute("aria-checked", String(nextEnabled));
+      card.querySelector(".module-card-status").textContent = nextEnabled ? "Enabled" : "Disabled";
+      mod.enabled = nextEnabled;
       try {
         await invoke("set_module_enabled", { moduleName: mod.name, enabled: nextEnabled });
       } catch (err) {
-        toggle.classList.toggle("on", !nextEnabled);
-        toggle.setAttribute("aria-checked", String(!nextEnabled));
-        statusEl.textContent = err;
+        card.classList.toggle("on", !nextEnabled);
+        card.setAttribute("aria-checked", String(!nextEnabled));
+        card.querySelector(".module-card-status").textContent = !nextEnabled ? "Enabled" : "Disabled";
+        mod.enabled = !nextEnabled;
+        document.getElementById("modules-status").textContent = err;
       }
     });
 
-    row.appendChild(label);
-    row.appendChild(toggle);
-    listEl.appendChild(row);
+    listEl.appendChild(card);
   }
 }
+
+async function loadModulesList() {
+  const statusEl = document.getElementById("modules-status");
+  const listEl = document.getElementById("modules-list");
+  const searchInput = document.getElementById("modules-search");
+
+  statusEl.textContent = "";
+  listEl.innerHTML = "";
+  if (searchInput) searchInput.value = "";
+
+  try {
+    allModules = await invoke("list_modules");
+  } catch (err) {
+    statusEl.textContent = err;
+    allModules = [];
+    return;
+  }
+
+  renderModulesList();
+}
+
+document.getElementById("modules-search")?.addEventListener("input", (e) => {
+  renderModulesList(e.target.value);
+});
+
+document.getElementById("discord-join-button")?.addEventListener("click", () => {
+  invoke("open_url", { url: "https://discord.gg/sPY8acc7Ny" }).catch((err) => {
+    console.error("open_url failed:", err);
+  });
+});
 
 
 // --- Init ---------------------------------------------------------------
