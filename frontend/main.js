@@ -27,7 +27,7 @@ let headCamera = null;
 let headRenderer = null;
 let headModelRoot = null;
 let headModelRadius = 1;
-let headMaterial = null;
+let headMaterials = []; // one entry per mesh (Head + Hat Layer are separate meshes/materials)
 
 // Shared pointer-tracking state, smoothed every animation frame regardless
 // of which viewer is active.
@@ -557,8 +557,18 @@ function initHeadRenderer() {
       // lit/PBR-shaded even under ambient-only light, so faces facing away
       // from nothing still darken at grazing angles. Swap to MeshBasicMaterial,
       // which ignores scene lighting entirely and always renders the texture
-      // at its true color. Grab the resulting material off the first mesh so
-      // a skin swap can update its texture later (Head + Hat Layer share one).
+      // at its true color.
+      //
+      // BUG FIX: Head and Hat Layer are separate meshes with separate material
+      // instances (not shared, despite what an earlier comment here assumed) —
+      // assigning obj.material = new MeshBasicMaterial(...) per mesh guarantees
+      // they're separate regardless. Only capturing the FIRST mesh's material
+      // into a single headMaterial variable meant a skin swap only ever updated
+      // the Head mesh's texture; the Hat Layer mesh kept its original/default
+      // texture forever, which is why the visible skin never seemed to change.
+      // Now every mesh's material is collected so a skin swap can update all
+      // of them.
+      headMaterials = [];
       headModelRoot.traverse((obj) => {
         if (obj.isMesh) {
           const prev = obj.material;
@@ -568,7 +578,7 @@ function initHeadRenderer() {
             alphaTest: prev.alphaTest,
             side: prev.side,
           });
-          if (!headMaterial) headMaterial = obj.material;
+          headMaterials.push(obj.material);
         }
       });
 
@@ -637,8 +647,8 @@ function sizeModelCanvas(canvas) {
   // Match that: fixed target size, clamped down only if the stage is
   // smaller than that (so it still can't overflow on an unexpectedly small
   // window).
-  const TARGET_HEAD_PX = 500;
-  const side = Math.min(TARGET_HEAD_PX, stageRect.height * 0.95, stageRect.width * 0.95);
+  const TARGET_HEAD_PX = 550;
+  const side = Math.min(TARGET_HEAD_PX, stageRect.height * 1.0, stageRect.width * 1.0);
 
   canvas.style.width = `${side}px`;
   canvas.style.height = `${side}px`;
@@ -668,7 +678,7 @@ function resizeHeadRenderer() {
 }
 
 function applySkinToHeadModel(skinSrc) {
-  if (!headMaterial) return;
+  if (headMaterials.length === 0) return;
 
   new THREE.TextureLoader().load(skinSrc, (texture) => {
     texture.flipY = false;
@@ -676,8 +686,10 @@ function applySkinToHeadModel(skinSrc) {
     texture.minFilter = THREE.NearestFilter;
     texture.colorSpace = THREE.SRGBColorSpace;
 
-    headMaterial.map = texture;
-    headMaterial.needsUpdate = true;
+    for (const material of headMaterials) {
+      material.map = texture;
+      material.needsUpdate = true;
+    }
   });
 }
 
