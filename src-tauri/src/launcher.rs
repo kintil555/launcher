@@ -94,7 +94,7 @@ fn elevate_and_inject(pid: u32, client_dll_paths: &[String]) -> Result<(), Strin
         let mask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NOASYNC;
         let mut info = SHELLEXECUTEINFOW {
             cbSize: std::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
-            fMask: mask.0,
+            fMask: mask,
             lpVerb: PCWSTR(verb_wide.as_ptr()),
             lpFile: PCWSTR(exe_wide.as_ptr()),
             lpParameters: PCWSTR(args_wide.as_ptr()),
