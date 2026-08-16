@@ -147,7 +147,15 @@ html, body {
   font-family: inherit;
   cursor: pointer;
   min-width: 160px;
+  max-width: 220px;
   justify-content: center;
+}
+
+#client-selector-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .client-selector-button:hover { border-color: var(--accent); }
@@ -156,16 +164,18 @@ html, body {
 .client-selector-menu {
   display: none;
   position: absolute;
-  top: calc(100% + 8px);
+  bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
   width: 260px;
+  max-height: 320px;
+  overflow-y: auto;
   background: var(--surface);
   border: 1px solid var(--surface-border);
   border-radius: 12px;
   padding: 8px;
   z-index: 20;
-  box-shadow: 0 12px 28px rgba(0,0,0,0.45);
+  box-shadow: 0 -12px 28px rgba(0,0,0,0.45);
 }
 
 .client-selector-menu.open { display: block; }
