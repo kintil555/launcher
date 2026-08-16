@@ -65,6 +65,11 @@ pub struct AppSettings {
     /// Bounce amplitude in model-space units, clamped to [MIN_HEAD_BOUNCE_AMPLITUDE, MAX_HEAD_BOUNCE_AMPLITUDE].
     #[serde(default = "default_head_bounce_amplitude")]
     pub head_bounce_amplitude: f32,
+    /// The signed-in Discord account, if any. This is identity only (username,
+    /// avatar) — no OAuth token is stored here or anywhere on disk; the access
+    /// token from login only ever lives in memory for the single profile fetch.
+    #[serde(default)]
+    pub discord_account: Option<crate::discord_auth::DiscordAccount>,
 }
 
 /// Bounds for head_bounce_speed (radians/sec fed into the sine wave on the frontend).
@@ -89,6 +94,7 @@ impl Default for AppSettings {
             head_bounce_enabled: default_head_bounce_enabled(),
             head_bounce_speed: default_head_bounce_speed(),
             head_bounce_amplitude: default_head_bounce_amplitude(),
+            discord_account: None,
         }
     }
 }

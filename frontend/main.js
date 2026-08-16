@@ -226,6 +226,7 @@ async function init() {
     renderHeadBounceSliders();
     renderClientList();
     renderDirectory();
+    renderAccountChip();
 
     await loadActiveSkin();
 
@@ -1018,5 +1019,69 @@ document.getElementById("change-folder-button").addEventListener("click", async 
   renderDirectory();
   document.getElementById("directory-status").textContent = "Directory updated.";
 });
+
+// --- Discord account chip -------------------------------------------------
+
+function renderAccountChip() {
+  const chip = document.getElementById("discord-account-chip");
+  const nameEl = document.getElementById("discord-account-name");
+  const avatarEl = document.getElementById("discord-avatar-fallback");
+  const fallbackSvg = avatarEl.innerHTML;
+
+  function syncUI() {
+    const account = settings.discord_account;
+
+    if (account) {
+      chip.classList.add("signed-in");
+      chip.title = "Signed in with Discord — click to sign out";
+      nameEl.textContent = account.global_name || account.username;
+
+      if (account.avatar_url) {
+        avatarEl.innerHTML = "";
+        const img = document.createElement("img");
+        img.src = account.avatar_url;
+        img.alt = "";
+        avatarEl.appendChild(img);
+      } else {
+        avatarEl.innerHTML = fallbackSvg;
+      }
+    } else {
+      chip.classList.remove("signed-in");
+      chip.title = "Sign in with Discord";
+      nameEl.textContent = "Sign in";
+      avatarEl.innerHTML = fallbackSvg;
+    }
+  }
+
+  syncUI();
+
+  chip.addEventListener("click", async () => {
+    if (chip.disabled) return;
+
+    if (settings.discord_account) {
+      chip.disabled = true;
+      try {
+        settings = await invoke("discord_logout");
+      } catch (err) {
+        console.error("discord_logout failed:", err);
+      } finally {
+        chip.disabled = false;
+        syncUI();
+      }
+      return;
+    }
+
+    chip.disabled = true;
+    nameEl.textContent = "Signing in...";
+    try {
+      settings = await invoke("discord_login");
+    } catch (err) {
+      console.error("discord_login failed:", err);
+    } finally {
+      chip.disabled = false;
+      syncUI();
+    }
+  });
+}
 
 init();

@@ -1,3 +1,4 @@
+mod discord_auth;
 mod injector;
 mod launcher;
 mod minecraft;
@@ -139,6 +140,28 @@ fn set_jod_enabled(enabled: bool, state: State<AppState>) -> Result<AppSettings,
 }
 
 #[tauri::command]
+async fn discord_login(state: State<'_, AppState>) -> Result<AppSettings, String> {
+    // The OAuth round-trip (opening the browser, running the local callback
+    // server, exchanging the code) doesn't touch AppState — only the final
+    // result does — so it runs before we ever take the lock, keeping that
+    // lock held for as short as possible.
+    let account = discord_auth::login().await?;
+
+    let mut settings = state.settings.lock().unwrap();
+    settings.discord_account = Some(account);
+    settings::save(&settings).map_err(|e| e.to_string())?;
+    Ok(settings.clone())
+}
+
+#[tauri::command]
+fn discord_logout(state: State<AppState>) -> Result<AppSettings, String> {
+    let mut settings = state.settings.lock().unwrap();
+    settings.discord_account = None;
+    settings::save(&settings).map_err(|e| e.to_string())?;
+    Ok(settings.clone())
+}
+
+#[tauri::command]
 fn open_directory(path: String) -> Result<(), String> {
     std::fs::create_dir_all(&path).map_err(|e| e.to_string())?;
     std::process::Command::new("explorer.exe")
@@ -184,6 +207,8 @@ pub fn run() {
             fetch_jod_extension,
             get_jod_dll_path,
             set_jod_enabled,
+            discord_login,
+            discord_logout,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Ender Client");

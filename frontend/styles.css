@@ -232,6 +232,55 @@ html, body {
 .icon-button.active { background: var(--surface); color: var(--accent); border-color: var(--surface-border); }
 .icon-button:active { transform: scale(0.92); }
 
+.account-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 5px 10px 5px 5px;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: inherit;
+  color: var(--fg);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.account-chip:hover { background: var(--surface); border-color: var(--surface-border); }
+
+.account-chip.signed-in .account-name { color: var(--fg); }
+.account-chip:not(.signed-in) .account-name { color: var(--muted-fg); }
+
+.account-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  color: var(--muted-fg);
+  flex-shrink: 0;
+}
+
+.account-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.account-name {
+  font-size: 13px;
+  font-weight: 600;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .nav-pill {
   background: transparent;
   border: none;

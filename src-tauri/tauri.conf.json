@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset: http://asset.localhost; connect-src 'self' data: ipc: http://ipc.localhost",
+      "csp": "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset: http://asset.localhost https://cdn.discordapp.com; connect-src 'self' data: ipc: http://ipc.localhost",
       "assetProtocol": {
         "enable": true,
         "scope": ["**/custom_skins/**"]
