@@ -384,8 +384,28 @@ function selectSkin(skin, cardEl) {
 
   const src = convertFileSrc(skin.path);
   if (skinsPreviewViewer) {
-    skinsPreviewViewer.loadSkin(src);
+    skinsPreviewViewer.loadSkin(src).then(() => forceFullbright(skinsPreviewViewer.playerObject));
   }
+}
+
+// Forces every mesh under `root` onto MeshBasicMaterial, which ignores scene
+// lighting entirely and always renders the texture at its true color — the
+// same "fullbright" treatment already used for the Home page's head model.
+// skinview3d's player model uses MeshStandardMaterial internally, which
+// stays visibly shaded (darker on faces angled away from the light) even
+// with ambient-only lighting at full intensity, which is why globalLight/
+// cameraLight tuning alone couldn't fix the dark skin-preview model.
+function forceFullbright(root) {
+  root.traverse((obj) => {
+    if (!obj.isMesh) return;
+    const prev = obj.material;
+    obj.material = new THREE.MeshBasicMaterial({
+      map: prev.map || null,
+      transparent: prev.transparent,
+      alphaTest: prev.alphaTest,
+      side: prev.side,
+    });
+  });
 }
 
 function initSkinsPreviewViewer() {
@@ -586,7 +606,9 @@ async function loadActiveSkin() {
     currentSkinSrc = "assets/steve_default.png";
   }
 
-  if (bodyViewer) bodyViewer.loadSkin(currentSkinSrc);
+  if (bodyViewer) {
+    bodyViewer.loadSkin(currentSkinSrc).then(() => forceFullbright(bodyViewer.playerObject));
+  }
   applySkinToHeadModel(currentSkinSrc);
 }
 
@@ -1108,9 +1130,14 @@ function initBodyViewer() {
   bodyViewer.zoom = 0.95;
 
   // Fullbright: ambient-only, no camera point light means no shading/shadow
-  // regardless of the player model's rotation.
+  // regardless of the player model's rotation. globalLight/cameraLight tuning
+  // alone isn't enough though — skinview3d's player model uses
+  // MeshStandardMaterial (PBR) internally, which still visibly shades faces
+  // angled away from the light even under ambient-only illumination. See
+  // forceFullbright(), applied right after skin loads below.
   bodyViewer.globalLight.intensity = 1.0;
   bodyViewer.cameraLight.intensity = 0.0;
+  forceFullbright(bodyViewer.playerObject);
 
   resizeBodyViewer();
 }
