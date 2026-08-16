@@ -12,6 +12,6 @@
     "dialog:allow-open",
     "updater:default",
     "process:default",
-    "app:default"
+    "core:app:default"
   ]
 }
