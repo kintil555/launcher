@@ -384,7 +384,9 @@ function selectSkin(skin, cardEl) {
 
   const src = convertFileSrc(skin.path);
   if (skinsPreviewViewer) {
-    skinsPreviewViewer.loadSkin(src).then(() => forceFullbright(skinsPreviewViewer.playerObject));
+    skinsPreviewViewer
+      .loadSkin(src)
+      .then(() => forceFullbright(skinsPreviewViewer.playerObject, src));
   }
 }
 
@@ -395,12 +397,29 @@ function selectSkin(skin, cardEl) {
 // stays visibly shaded (darker on faces angled away from the light) even
 // with ambient-only lighting at full intensity, which is why globalLight/
 // cameraLight tuning alone couldn't fix the dark skin-preview model.
-function forceFullbright(root) {
+//
+// `skinSrc` is optional and, when given, is loaded fresh with THREE's own
+// TextureLoader instead of reusing `obj.material.map` from the mesh being
+// replaced. Reusing that map silently broke skin switching: once a mesh's
+// material had already been swapped to MeshBasicMaterial by a previous call,
+// the *next* loadSkin() call updates skinview3d's own (different) material
+// instance, not the MeshBasicMaterial sitting on the mesh — so capturing
+// `prev.map` here was capturing the OLD texture, not the one loadSkin() had
+// just switched to, and every skin after the first appeared identical to it.
+function forceFullbright(root, skinSrc) {
+  const freshTexture = skinSrc
+    ? new THREE.TextureLoader().load(skinSrc, (texture) => {
+        texture.magFilter = THREE.NearestFilter;
+        texture.minFilter = THREE.NearestFilter;
+        texture.colorSpace = THREE.SRGBColorSpace;
+      })
+    : null;
+
   root.traverse((obj) => {
     if (!obj.isMesh) return;
     const prev = obj.material;
     obj.material = new THREE.MeshBasicMaterial({
-      map: prev.map || null,
+      map: freshTexture || prev.map || null,
       transparent: prev.transparent,
       alphaTest: prev.alphaTest,
       side: prev.side,
@@ -438,6 +457,7 @@ function initSkinsPreviewViewer() {
   // driven manually instead, matching the Home page's eased mouse-follow.
   skinsPreviewViewer.globalLight.intensity = 1.0;
   skinsPreviewViewer.cameraLight.intensity = 0.0;
+  forceFullbright(skinsPreviewViewer.playerObject, "assets/steve_default.png");
 
   resizeSkinsPreviewViewer();
 }
@@ -607,7 +627,9 @@ async function loadActiveSkin() {
   }
 
   if (bodyViewer) {
-    bodyViewer.loadSkin(currentSkinSrc).then(() => forceFullbright(bodyViewer.playerObject));
+    bodyViewer
+      .loadSkin(currentSkinSrc)
+      .then(() => forceFullbright(bodyViewer.playerObject, currentSkinSrc));
   }
   applySkinToHeadModel(currentSkinSrc);
 }
@@ -1137,7 +1159,7 @@ function initBodyViewer() {
   // forceFullbright(), applied right after skin loads below.
   bodyViewer.globalLight.intensity = 1.0;
   bodyViewer.cameraLight.intensity = 0.0;
-  forceFullbright(bodyViewer.playerObject);
+  forceFullbright(bodyViewer.playerObject, "assets/steve_default.png");
 
   resizeBodyViewer();
 }
