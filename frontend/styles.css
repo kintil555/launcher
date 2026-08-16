@@ -60,6 +60,7 @@ html, body {
   padding: 0 22px;
   background: var(--window-bg);
   position: relative;
+  gap: 12px;
 }
 
 .topbar::after {
@@ -77,24 +78,44 @@ html, body {
   align-items: center;
   min-width: 0;
   height: 100%;
-  margin-left: auto;
 }
 
-/* Left-hand nav group (Settings, Home, Modules, Extensions) — sits in normal
-   flex flow on the left, same as any ordinary toolbar group. Kept separate
-   from .source-toggle below, which is the only element centered in the
-   titlebar. */
+.topbar-side-right {
+  margin-left: 0;
+  flex-shrink: 0;
+}
+
+/* Left-hand nav group (account chip, Settings, Home) — sits in normal flex
+   flow on the left. Allowed to shrink (min-width: 0) so it never gets
+   pushed under the centered toggle as it grows. */
 .topbar-nav {
   display: flex;
   align-items: center;
   gap: 14px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
-/* Release/Custom toggle — centered on the titlebar as a whole (not on the
-   left nav group), independent of how wide topbar-nav or topbar-side end up
-   being. Sits a little lower than the nav row and reads as a bigger, more
-   prominent control with a white outline. */
+/* Right-hand nav group (Modules, Extensions) — mirrors .topbar-nav but sits
+   after the toggle, so Release/Custom stays visually centered between the
+   two nav groups instead of being pushed off-center by one wider side. */
+.topbar-nav-right {
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+/* Release/Custom toggle — sits in its own flex-1 middle column, so it's
+   centered in whatever space is actually left between the two nav groups,
+   rather than fixed to the absolute center of the whole titlebar where a
+   wider nav group can run into it. */
+.source-toggle-column {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
 .source-toggle {
   display: flex;
   background: var(--surface);
@@ -102,10 +123,7 @@ html, body {
   border-radius: 11px;
   padding: 3px;
   gap: 3px;
-  position: absolute;
-  left: 50%;
-  top: calc(50% + 4px);
-  transform: translate(-50%, -50%);
+  flex-shrink: 0;
   box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.12);
 }
 
@@ -275,10 +293,89 @@ html, body {
 .account-name {
   font-size: 13px;
   font-weight: 600;
-  max-width: 120px;
+  max-width: 90px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.account-dropdown-wrap {
+  position: relative;
+}
+
+.account-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 160px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  padding: 6px;
+  z-index: 30;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.45);
+}
+
+.account-dropdown-menu.open { display: block; }
+
+.account-dropdown-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  padding: 9px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.account-dropdown-item:hover {
+  background: rgba(229, 72, 77, 0.12);
+  color: #E5484D;
+}
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.confirm-overlay.hidden { display: none; }
+
+.confirm-card {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 14px;
+  padding: 20px;
+  width: 300px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+
+.confirm-title {
+  margin: 0 0 6px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.confirm-body {
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  color: var(--muted-fg);
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .nav-pill {

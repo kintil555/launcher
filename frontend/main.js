@@ -1026,14 +1026,28 @@ function renderAccountChip() {
   const chip = document.getElementById("discord-account-chip");
   const nameEl = document.getElementById("discord-account-name");
   const avatarEl = document.getElementById("discord-avatar-fallback");
+  const menu = document.getElementById("discord-account-menu");
+  const signOutItem = document.getElementById("discord-signout-button");
+  const overlay = document.getElementById("signout-confirm-overlay");
+  const confirmBody = document.getElementById("signout-confirm-body");
+  const confirmCancel = document.getElementById("signout-cancel-button");
+  const confirmSignOut = document.getElementById("signout-confirm-button");
   const fallbackSvg = avatarEl.innerHTML;
+
+  function closeMenu() {
+    menu.classList.remove("open");
+  }
+
+  function closeConfirm() {
+    overlay.classList.add("hidden");
+  }
 
   function syncUI() {
     const account = settings.discord_account;
 
     if (account) {
       chip.classList.add("signed-in");
-      chip.title = "Signed in with Discord — click to sign out";
+      chip.title = "Discord account";
       nameEl.textContent = account.global_name || account.username;
 
       if (account.avatar_url) {
@@ -1050,24 +1064,21 @@ function renderAccountChip() {
       chip.title = "Sign in with Discord";
       nameEl.textContent = "Sign in";
       avatarEl.innerHTML = fallbackSvg;
+      closeMenu();
     }
   }
 
   syncUI();
 
-  chip.addEventListener("click", async () => {
+  chip.addEventListener("click", async (e) => {
     if (chip.disabled) return;
 
+    // Already signed in: this click just opens/closes the dropdown —
+    // signing out requires picking "Sign out" from the menu, then
+    // confirming, so a stray click never logs the user out by accident.
     if (settings.discord_account) {
-      chip.disabled = true;
-      try {
-        settings = await invoke("discord_logout");
-      } catch (err) {
-        console.error("discord_logout failed:", err);
-      } finally {
-        chip.disabled = false;
-        syncUI();
-      }
+      e.stopPropagation();
+      menu.classList.toggle("open");
       return;
     }
 
@@ -1080,6 +1091,39 @@ function renderAccountChip() {
     } finally {
       chip.disabled = false;
       syncUI();
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!menu.contains(e.target) && e.target !== chip) {
+      closeMenu();
+    }
+  });
+
+  signOutItem.addEventListener("click", () => {
+    closeMenu();
+    const account = settings.discord_account;
+    const label = account ? (account.global_name || account.username) : "your account";
+    confirmBody.textContent = `You'll be signed out of ${label} on this launcher.`;
+    overlay.classList.remove("hidden");
+  });
+
+  confirmCancel.addEventListener("click", closeConfirm);
+
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeConfirm();
+  });
+
+  confirmSignOut.addEventListener("click", async () => {
+    confirmSignOut.disabled = true;
+    try {
+      settings = await invoke("discord_logout");
+      syncUI();
+    } catch (err) {
+      console.error("discord_logout failed:", err);
+    } finally {
+      confirmSignOut.disabled = false;
+      closeConfirm();
     }
   });
 }
