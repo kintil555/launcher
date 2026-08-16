@@ -248,6 +248,7 @@ document.getElementById("discord-join-button")?.addEventListener("click", () => 
 // --- Skins page -------------------------------------------------------
 
 let skinsPreviewViewer = null;
+let skinsPreviewViewerInitializing = false;
 let selectedSkinPath = null;
 
 // Draws just the front-face layer (8x8 region at 8,8 in the standard 64x64
@@ -336,36 +337,49 @@ function selectSkin(skin, cardEl) {
 }
 
 function initSkinsPreviewViewer() {
-  if (skinsPreviewViewer) return;
-  const canvas = document.getElementById("skin-preview-canvas");
-  skinsPreviewViewer = new skinview3d.SkinViewer({
-    canvas,
-    width: 200,
-    height: 280,
-    skin: "assets/steve_default.png",
-  });
-  skinsPreviewViewer.background = null;
-  skinsPreviewViewer.controls.enableZoom = false;
-  skinsPreviewViewer.controls.enablePan = false;
-  skinsPreviewViewer.camera.position.set(0, 0, 60);
-  skinsPreviewViewer.zoom = 0.9;
-  skinsPreviewViewer.globalLight.intensity = 1.0;
-  skinsPreviewViewer.cameraLight.intensity = 0.0;
-  skinsPreviewViewer.autoRotate = true;
-  skinsPreviewViewer.autoRotateSpeed = 1.0;
+  if (skinsPreviewViewer || skinsPreviewViewerInitializing) return;
+  skinsPreviewViewerInitializing = true;
 
-  // The constructor's width/height only set the initial internal render
-  // buffer -- they don't stay in sync with the CSS box (200x280 via
-  // .skins-preview-pane) or the real device pixel ratio the way
-  // headRenderer/bodyViewer are kept in sync via setSize() on every
-  // resize. Left unset, a devicePixelRatio > 1 upscales the CSS-visible
-  // canvas from a lower-res buffer, which reads as dim/soft rather than
-  // fullbright. Match the other two viewers' approach: read the actual
-  // rendered box and hand it to setSize() explicitly.
-  const rect = canvas.getBoundingClientRect();
-  if (rect.width > 0 && rect.height > 0) {
-    skinsPreviewViewer.setSize(rect.width, rect.height);
-  }
+  // Constructing while #page-skins was still display:none (before .active
+  // is reflected in layout) left skinview3d's internal EffectComposer/
+  // renderer set up against a 0-size canvas -- setSize() afterward fixes
+  // the visible dimensions but not whatever the composer baked in at
+  // construction time, which is why the preview rendered dim while the
+  // identically-configured Home viewers (built once at app start, never
+  // hidden) rendered fine. Deferring one frame guarantees the page's
+  // display:flex has actually been laid out before construction.
+  requestAnimationFrame(() => {
+    const canvas = document.getElementById("skin-preview-canvas");
+    skinsPreviewViewer = new skinview3d.SkinViewer({
+      canvas,
+      width: 200,
+      height: 280,
+      skin: "assets/steve_default.png",
+    });
+    skinsPreviewViewer.background = null;
+    skinsPreviewViewer.controls.enableZoom = false;
+    skinsPreviewViewer.controls.enablePan = false;
+    skinsPreviewViewer.camera.position.set(0, 0, 60);
+    skinsPreviewViewer.zoom = 0.9;
+    skinsPreviewViewer.globalLight.intensity = 1.0;
+    skinsPreviewViewer.cameraLight.intensity = 0.0;
+    skinsPreviewViewer.autoRotate = true;
+    skinsPreviewViewer.autoRotateSpeed = 1.0;
+
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      skinsPreviewViewer.setSize(rect.width, rect.height);
+    }
+
+    // If a skin was already selected while construction was pending
+    // (unlikely given the grid takes a tick too, but cheap to cover),
+    // make sure the viewer reflects it rather than the placeholder.
+    if (selectedSkinPath) {
+      skinsPreviewViewer.loadSkin(convertFileSrc(selectedSkinPath));
+    }
+
+    skinsPreviewViewerInitializing = false;
+  });
 }
 
 async function loadSkinsGrid() {
