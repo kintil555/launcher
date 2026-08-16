@@ -219,6 +219,7 @@ pub fn run() {
             skins::list_custom_skins,
             skins::set_active_skin,
             skins::fetch_skin_by_username,
+            skins::import_skin_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Ender Client");

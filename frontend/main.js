@@ -426,7 +426,10 @@ async function init() {
     checkAllExtensionUpdates();
 
     const chooseBtn = document.getElementById("choose-skin-btn");
-    if (chooseBtn) chooseBtn.addEventListener("click", chooseSkinManually);
+    if (chooseBtn) chooseBtn.addEventListener("click", () => showPage("skins"));
+
+    const uploadBtn = document.getElementById("skin-upload-button");
+    if (uploadBtn) uploadBtn.addEventListener("click", uploadSkinManually);
 
     // Same zero-size guard as showPage(): on first paint the stage may not
     // have its final layout size yet, so the initial renderer size (set
@@ -456,35 +459,35 @@ function convertFileSrc(path) {
 
 async function loadActiveSkin() {
   const skinPath = await invoke("find_active_skin_path");
-  const chooseBtn = document.getElementById("choose-skin-btn");
 
   if (skinPath) {
     currentSkinSrc = convertFileSrc(skinPath);
-    if (chooseBtn) chooseBtn.style.display = "none";
   } else {
     // custom_skins folder missing/empty/undetected — fall back to Steve
-    // and let the user manually pick a skin file instead of guessing.
+    // and let the user pick a skin from the Skins tab instead of guessing.
     currentSkinSrc = "assets/steve_default.png";
-    if (chooseBtn) chooseBtn.style.display = "block";
   }
 
   if (bodyViewer) bodyViewer.loadSkin(currentSkinSrc);
   applySkinToHeadModel(currentSkinSrc);
 }
 
-async function chooseSkinManually() {
+async function uploadSkinManually() {
   const selected = await window.__TAURI__.dialog.open({
     multiple: false,
     filters: [{ name: "Minecraft Skin", extensions: ["png"] }],
   });
   if (!selected) return;
 
-  currentSkinSrc = convertFileSrc(selected);
-  if (bodyViewer) bodyViewer.loadSkin(currentSkinSrc);
-  applySkinToHeadModel(currentSkinSrc);
-
-  const chooseBtn = document.getElementById("choose-skin-btn");
-  if (chooseBtn) chooseBtn.style.display = "none";
+  const statusEl = document.getElementById("skins-status");
+  try {
+    await invoke("import_skin_file", { sourcePath: selected });
+    if (statusEl) statusEl.textContent = "Skin imported.";
+    await loadSkinsGrid();
+  } catch (err) {
+    console.error("import_skin_file failed:", err);
+    if (statusEl) statusEl.textContent = "Import failed: " + (err?.message || err);
+  }
 }
 
 // --- Appearance -----------------------------------------------------------

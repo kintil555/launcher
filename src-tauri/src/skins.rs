@@ -2,7 +2,7 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
-use crate::minecraft::custom_skins_dir;
+use crate::minecraft::custom_skins_dirs;
 
 #[derive(Serialize)]
 pub struct SkinEntry {
@@ -10,22 +10,28 @@ pub struct SkinEntry {
     pub path: String,
 }
 
-/// Lists every PNG in the game's custom_skins folder (top-level only --
-/// this mirrors what SkinLocator/find_active_skin_path already treat as
-/// the pool of "known" skins, so behavior stays consistent between the
-/// active-skin picker and this list). Newest-modified first.
+/// Lists every PNG across all custom_skins folder candidates (per-account
+/// and Shared, top-level only -- this mirrors what SkinLocator/
+/// find_active_skin_path already treat as the pool of "known" skins, so
+/// behavior stays consistent between the active-skin picker and this list).
+/// Newest-modified first.
 #[tauri::command]
 pub fn list_custom_skins() -> Result<Vec<SkinEntry>, String> {
-    let dir = custom_skins_dir()
-        .ok_or_else(|| "Minecraft's custom_skins folder was not found yet. Launch the game at least once first.".to_string())?;
+    let dirs = custom_skins_dirs();
+    if dirs.is_empty() {
+        return Err("Minecraft's custom_skins folder was not found yet. Launch the game at least once first.".to_string());
+    }
 
-    let mut entries: Vec<(std::time::SystemTime, PathBuf)> = std::fs::read_dir(&dir)
-        .map_err(|e| e.to_string())?
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .filter(|p| p.is_file() && p.extension().and_then(|e| e.to_str()).map(|e| e.eq_ignore_ascii_case("png")) == Some(true))
-        .filter_map(|p| std::fs::metadata(&p).ok().and_then(|m| m.modified().ok()).map(|t| (t, p)))
-        .collect();
+    let mut entries: Vec<(std::time::SystemTime, PathBuf)> = Vec::new();
+    for dir in &dirs {
+        let Ok(read) = std::fs::read_dir(dir) else { continue; };
+        entries.extend(
+            read.filter_map(|e| e.ok())
+                .map(|e| e.path())
+                .filter(|p| p.is_file() && p.extension().and_then(|e| e.to_str()).map(|e| e.eq_ignore_ascii_case("png")) == Some(true))
+                .filter_map(|p| std::fs::metadata(&p).ok().and_then(|m| m.modified().ok()).map(|t| (t, p))),
+        );
+    }
 
     entries.sort_by(|a, b| b.0.cmp(&a.0));
 
@@ -152,7 +158,9 @@ pub async fn fetch_skin_by_username(username: String) -> Result<SkinEntry, Strin
         .await
         .map_err(|e| e.to_string())?;
 
-    let dir = custom_skins_dir()
+    let dirs = custom_skins_dirs();
+    let dir = dirs
+        .first()
         .ok_or_else(|| "Minecraft's custom_skins folder was not found yet. Launch the game at least once first.".to_string())?;
 
     // Sanitize: username is validated by Mojang's own lookup succeeding,
@@ -161,6 +169,33 @@ pub async fn fetch_skin_by_username(username: String) -> Result<SkinEntry, Strin
     let safe_name: String = username.chars().filter(|c| c.is_alphanumeric() || *c == '_').collect();
     let out_path = dir.join(format!("{safe_name}.png"));
     std::fs::write(&out_path, &skin_bytes).map_err(|e| e.to_string())?;
+
+    Ok(SkinEntry {
+        filename: out_path.file_name().unwrap_or_default().to_string_lossy().to_string(),
+        path: out_path.to_string_lossy().to_string(),
+    })
+}
+
+/// Copies an arbitrary PNG (chosen via OS file dialog) into the custom_skins
+/// folder so it shows up in the picker like any other local skin.
+#[tauri::command]
+pub fn import_skin_file(source_path: String) -> Result<SkinEntry, String> {
+    let source = PathBuf::from(&source_path);
+    if !source.is_file() {
+        return Err("Selected file does not exist.".to_string());
+    }
+
+    let dirs = custom_skins_dirs();
+    let dir = dirs
+        .first()
+        .ok_or_else(|| "Minecraft's custom_skins folder was not found yet. Launch the game at least once first.".to_string())?;
+
+    let file_name = source
+        .file_name()
+        .ok_or_else(|| "Selected file has no name.".to_string())?;
+    let out_path = dir.join(file_name);
+
+    std::fs::copy(&source, &out_path).map_err(|e| e.to_string())?;
 
     Ok(SkinEntry {
         filename: out_path.file_name().unwrap_or_default().to_string_lossy().to_string(),

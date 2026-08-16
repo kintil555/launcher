@@ -53,36 +53,63 @@ pub fn locate() -> Result<MinecraftPackageInfo, String> {
     })
 }
 
-/// Path to the game's own skin folder, matching the layout SkinLocator relied on.
-pub fn custom_skins_dir() -> Option<PathBuf> {
-    let appdata = std::env::var("APPDATA").ok()?;
-    let dir = PathBuf::from(appdata)
-        .join("Minecraft Bedrock")
-        .join("Users")
-        .join("Shared")
-        .join("games")
-        .join("com.mojang")
-        .join("custom_skins");
+/// Returns every existing custom_skins folder candidate. Bedrock stores skins
+/// per-account under Users\<xuid>\games\com.mojang\custom_skins, and/or under
+/// the shared Users\Shared\games\com.mojang\custom_skins — which one is
+/// populated varies by install/login history, so both must be checked.
+/// Non-Shared (per-account) folders are ordered first since they're the
+/// active player's folder when both exist.
+pub fn custom_skins_dirs() -> Vec<PathBuf> {
+    let Ok(appdata) = std::env::var("APPDATA") else { return Vec::new(); };
+    let users_dir = PathBuf::from(appdata).join("Minecraft Bedrock").join("Users");
 
-    if dir.exists() {
-        Some(dir)
-    } else {
-        None
+    let mut per_account = Vec::new();
+    let mut shared = Vec::new();
+
+    if let Ok(entries) = std::fs::read_dir(&users_dir) {
+        for entry in entries.filter_map(|e| e.ok()) {
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let candidate = path.join("games").join("com.mojang").join("custom_skins");
+            if !candidate.exists() {
+                continue;
+            }
+            let is_shared = path.file_name().and_then(|n| n.to_str()) == Some("Shared");
+            if is_shared {
+                shared.push(candidate);
+            } else {
+                per_account.push(candidate);
+            }
+        }
     }
+
+    per_account.extend(shared);
+    per_account
 }
 
-/// Returns the most recently modified skin PNG in the custom_skins folder, if any —
-/// ported from EnderClient.Core.Game.SkinLocator.
+/// Deprecated: use `custom_skins_dirs()`, which checks both the per-account
+/// and Shared folders. Kept only for any lingering internal callers.
+#[allow(dead_code)]
+pub fn custom_skins_dir() -> Option<PathBuf> {
+    custom_skins_dirs().into_iter().next()
+}
+
+/// Returns the most recently modified skin PNG across all custom_skins
+/// candidate folders, if any — ported from EnderClient.Core.Game.SkinLocator.
 pub fn find_active_skin_path() -> Option<String> {
-    let dir = custom_skins_dir()?;
+    let dirs = custom_skins_dirs();
 
     let mut newest: Option<(std::time::SystemTime, PathBuf)> = None;
 
-    for entry in walk_png_files(&dir) {
-        if let Ok(metadata) = std::fs::metadata(&entry) {
-            if let Ok(modified) = metadata.modified() {
-                if newest.as_ref().map(|(t, _)| modified > *t).unwrap_or(true) {
-                    newest = Some((modified, entry));
+    for dir in &dirs {
+        for entry in walk_png_files(dir) {
+            if let Ok(metadata) = std::fs::metadata(&entry) {
+                if let Ok(modified) = metadata.modified() {
+                    if newest.as_ref().map(|(t, _)| modified > *t).unwrap_or(true) {
+                        newest = Some((modified, entry));
+                    }
                 }
             }
         }
