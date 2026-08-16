@@ -341,7 +341,7 @@ function initSkinsPreviewViewer() {
   skinsPreviewViewer = new skinview3d.SkinViewer({
     canvas,
     width: 200,
-    height: 320,
+    height: 280,
     skin: "assets/steve_default.png",
   });
   skinsPreviewViewer.background = null;
@@ -353,6 +353,19 @@ function initSkinsPreviewViewer() {
   skinsPreviewViewer.cameraLight.intensity = 0.0;
   skinsPreviewViewer.autoRotate = true;
   skinsPreviewViewer.autoRotateSpeed = 1.0;
+
+  // The constructor's width/height only set the initial internal render
+  // buffer -- they don't stay in sync with the CSS box (200x280 via
+  // .skins-preview-pane) or the real device pixel ratio the way
+  // headRenderer/bodyViewer are kept in sync via setSize() on every
+  // resize. Left unset, a devicePixelRatio > 1 upscales the CSS-visible
+  // canvas from a lower-res buffer, which reads as dim/soft rather than
+  // fullbright. Match the other two viewers' approach: read the actual
+  // rendered box and hand it to setSize() explicitly.
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width > 0 && rect.height > 0) {
+    skinsPreviewViewer.setSize(rect.width, rect.height);
+  }
 }
 
 async function loadSkinsGrid() {
