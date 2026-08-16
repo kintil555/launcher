@@ -1,0 +1,38 @@
+name: Generate Updater Signing Key (run once)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Generate keypair
+        env:
+          # A non-empty password is required — Tauri CLI has had bugs with
+          # empty-string passwords in some versions. Change this to your
+          # own password before running if you want a memorable one; it's
+          # only needed again if you ever need to re-sign outside CI.
+          KEY_PASSWORD: EnderClientUpdaterKey2026!
+        run: |
+          cargo tauri signer generate -w ./updater.key -p "$KEY_PASSWORD" --force
+
+      - name: Print public key (safe to be public)
+        run: |
+          echo "=== PUBLIC KEY (paste into tauri.conf.json 'pubkey') ==="
+          cat ./updater.key.pub
+
+      - name: Upload private key as a short-lived artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: updater-private-key-DELETE-AFTER-SAVING
+          path: ./updater.key
+          retention-days: 1

@@ -4,6 +4,9 @@ import { GLTFLoader } from "./assets/vendor/three/loaders/GLTFLoader.js";
 const { invoke } = window.__TAURI__.core;
 const { open: openDialog } = window.__TAURI__.dialog;
 const { getCurrentWindow } = window.__TAURI__.window;
+const { check: checkForUpdate } = window.__TAURI__.updater;
+const { relaunch } = window.__TAURI__.process;
+const { getVersion } = window.__TAURI__.app;
 
 const MAX_YAW = 0.55;   // radians, ~31.5deg either side
 const MAX_PITCH = 0.35; // radians, ~20deg either side
@@ -13,6 +16,7 @@ const MIN_BOUNCE_SPEED = 0.2;
 const MAX_BOUNCE_SPEED = 4.0;
 const MIN_BOUNCE_AMPLITUDE = 0.0;
 const MAX_BOUNCE_AMPLITUDE = 0.2;
+const SKINS_PREVIEW_SPIN_SPEED = 0.6; // radians/sec, constant slow spin
 
 const ACCENT_PRESETS = ["#8B5CF6", "#22C55E", "#3B82F6", "#F97316", "#EC4899", "#EAB308"];
 
@@ -137,6 +141,55 @@ async function checkAndUpdateExtension(fetchCommand, statusElId) {
 async function checkAllExtensionUpdates() {
   await checkAndUpdateExtension("fetch_jod_extension", "jod-status");
 }
+
+// --- Launcher self-update ---------------------------------------------
+
+let pendingUpdate = null;
+
+async function checkAppUpdate() {
+  try {
+    const update = await checkForUpdate();
+    if (!update?.available) return;
+
+    // Defensive check against a known upstream regression where check()
+    // sometimes returns available:true with the same version as what's
+    // already running (tauri-apps/plugins-workspace#2998). Skip the toast
+    // if the "update" isn't actually newer.
+    const currentVersion = await getVersion().catch(() => null);
+    if (currentVersion && update.version === currentVersion) return;
+
+    pendingUpdate = update;
+
+    document.getElementById("update-toast-version").textContent =
+      `Version ${update.version} is ready to install.`;
+    document.getElementById("update-toast").classList.remove("hidden");
+  } catch (err) {
+    // Non-fatal — no network, endpoint unreachable, etc. Just skip silently,
+    // the same way checkAllExtensionUpdates() does for its own failures.
+    console.error("update check failed:", err);
+  }
+}
+
+document.getElementById("update-toast-dismiss").addEventListener("click", () => {
+  document.getElementById("update-toast").classList.add("hidden");
+});
+
+document.getElementById("update-toast-install").addEventListener("click", async () => {
+  if (!pendingUpdate) return;
+
+  const installBtn = document.getElementById("update-toast-install");
+  installBtn.disabled = true;
+  installBtn.textContent = "Updating...";
+
+  try {
+    await pendingUpdate.downloadAndInstall();
+    await relaunch();
+  } catch (err) {
+    installBtn.disabled = false;
+    installBtn.textContent = "Update & Restart";
+    console.error("update install failed:", err);
+  }
+});
 
 document.getElementById("jod-toggle").addEventListener("click", async () => {
   const toggle = document.getElementById("jod-toggle");
@@ -350,13 +403,21 @@ function initSkinsPreviewViewer() {
   });
   skinsPreviewViewer.background = null;
   skinsPreviewViewer.controls.enableZoom = false;
+  skinsPreviewViewer.controls.enableRotate = false;
   skinsPreviewViewer.controls.enablePan = false;
   skinsPreviewViewer.camera.position.set(0, 0, 60);
   skinsPreviewViewer.zoom = 0.9;
+
+  // Fullbright: ambient-only, no camera point light means no shading/shadow
+  // regardless of the player model's rotation — same config as bodyViewer,
+  // which never went dark. autoRotate (and OrbitControls' enableRotate) is
+  // deliberately left off here too: skinview3d's autoRotate spins the
+  // camera around the scene rather than the model, and with cameraLight
+  // parented to the camera, a moving camera plus any residual light produced
+  // exactly the one-sided dark shading seen in the bug report. Rotation is
+  // driven manually instead, matching the Home page's eased mouse-follow.
   skinsPreviewViewer.globalLight.intensity = 1.0;
   skinsPreviewViewer.cameraLight.intensity = 0.0;
-  skinsPreviewViewer.autoRotate = true;
-  skinsPreviewViewer.autoRotateSpeed = 1.0;
 
   resizeSkinsPreviewViewer();
 }
@@ -475,6 +536,10 @@ async function init() {
     // Don't block startup on this — just kick it off in the background so
     // Latite/JoD stay current even if the user never opens Extensions.
     checkAllExtensionUpdates();
+
+    // Same reasoning — the launcher itself checking for its own update
+    // shouldn't hold up startup either.
+    checkAppUpdate();
 
     const chooseBtn = document.getElementById("choose-skin-btn");
     if (chooseBtn) chooseBtn.addEventListener("click", () => showPage("skins"));
@@ -832,6 +897,15 @@ function startTrackingLoop() {
       bodyViewer.playerObject.rotation.y = currentYaw + spinOffset;
       bodyViewer.playerObject.rotation.z = spinRoll;
       bodyViewer.playerObject.position.y = bounceOffset;
+    }
+
+    const skinsVisible = document.getElementById("page-skins").classList.contains("active");
+    if (skinsPreviewViewer && skinsVisible) {
+      // Slow constant spin, driven manually just like bodyViewer above —
+      // skinview3d's own autoRotate rotates the camera (which cameraLight is
+      // parented to) rather than the model, and that produced the one-sided
+      // dark shading seen in the darkness bug even with cameraLight at 0.
+      skinsPreviewViewer.playerObject.rotation.y = performance.now() / 1000 * SKINS_PREVIEW_SPIN_SPEED;
     }
 
     requestAnimationFrame(tick);
