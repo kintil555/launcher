@@ -301,8 +301,8 @@ html, body {
   animation: hb-float ease-in-out infinite, hb-scale ease-in-out infinite;
 }
 
-.hb-hollow { fill: none; stroke: var(--accent); }
-.hb-fill { fill: var(--accent); stroke: none; }
+.hb-hollow { fill: none; stroke: rgba(255, 255, 255, 0.9); }
+.hb-fill { fill: rgba(255, 255, 255, 0.9); stroke: none; }
 
 @keyframes hb-float {
   0%, 100% { translate: 0 0; }
