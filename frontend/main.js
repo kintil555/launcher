@@ -69,7 +69,6 @@ function showPage(pageName) {
   document.getElementById("home-nav-button").classList.toggle("active", pageName === "home");
   document.getElementById("settings-nav-button").classList.toggle("active", pageName === "settings");
   document.getElementById("modules-nav-button").classList.toggle("active", pageName === "modules");
-  document.getElementById("skins-nav-button").classList.toggle("active", pageName === "skins");
   document.getElementById("extensions-nav-button").classList.toggle("active", pageName === "extensions");
 
   if (pageName === "modules") {
@@ -100,7 +99,6 @@ function showPage(pageName) {
 document.getElementById("home-nav-button").addEventListener("click", () => showPage("home"));
 document.getElementById("settings-nav-button").addEventListener("click", () => showPage("settings"));
 document.getElementById("modules-nav-button").addEventListener("click", () => showPage("modules"));
-document.getElementById("skins-nav-button").addEventListener("click", () => showPage("skins"));
 document.getElementById("extensions-nav-button").addEventListener("click", () => showPage("extensions"));
 
 // --- Extensions page --------------------------------------------------
