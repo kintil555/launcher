@@ -2,11 +2,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::PathBuf;
 
-/// Mirrors util::GetLatitePath() in Latite (src/util/Util.cpp): the client
-/// writes its config to %APPDATA%\EnderClient\Configs\default.json.
+/// Mirrors util::GetLatitePath() in Latite (src/util/Util.cpp): despite the
+/// name, GetRoamingPath() there reads %LOCALAPPDATA% (not %APPDATA%), so
+/// the client actually writes its config to
+/// %LOCALAPPDATA%\EnderClient\Configs\default.json.
 fn latite_config_path() -> Result<PathBuf, String> {
-    let appdata = std::env::var("APPDATA").map_err(|_| "Could not resolve %APPDATA%".to_string())?;
-    Ok(PathBuf::from(appdata).join("EnderClient").join("Configs").join("default.json"))
+    let localappdata = std::env::var("LOCALAPPDATA").map_err(|_| "Could not resolve %LOCALAPPDATA%".to_string())?;
+    Ok(PathBuf::from(localappdata).join("EnderClient").join("Configs").join("default.json"))
 }
 
 #[derive(Serialize, Deserialize, Clone)]
