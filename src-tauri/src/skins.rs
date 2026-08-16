@@ -50,7 +50,10 @@ pub fn list_custom_skins() -> Result<Vec<SkinEntry>, String> {
 /// previously newest) without touching its bytes.
 #[tauri::command]
 pub fn set_active_skin(path: String) -> Result<(), String> {
-    let file = std::fs::File::open(&path).map_err(|e| e.to_string())?;
+    let file = std::fs::OpenOptions::new()
+        .write(true)
+        .open(&path)
+        .map_err(|e| e.to_string())?;
     file.set_modified(std::time::SystemTime::now()).map_err(|e| e.to_string())?;
     Ok(())
 }
