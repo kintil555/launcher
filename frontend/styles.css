@@ -28,6 +28,36 @@
 
 * { box-sizing: border-box; }
 
+/* Scrollbar — WebView2 is Chromium-based, so ::-webkit-scrollbar works. Thin,
+   rounded, theme-matched, and subtle at rest (brightens on hover) instead of
+   the default thick gray Windows scrollbar. Applied globally so every
+   overflow-y: auto panel (Clients list, Modules, Extensions, etc.) looks
+   consistent without repeating this per element. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-border);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 html, body {
   margin: 0;
   padding: 0;
