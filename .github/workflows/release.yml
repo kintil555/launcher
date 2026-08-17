@@ -1,14 +1,14 @@
 name: Release
 
+# Every push to master ships a new version, end to end, in one job:
+# bump patch version -> commit -> tag -> build -> sign -> publish GitHub
+# Release with latest.json. No second workflow, no cross-workflow
+# triggering, so no PAT is needed anywhere here — the default GITHUB_TOKEN
+# is enough because everything happens inside this single job.
 on:
   push:
-    tags:
-      - "v*"
+    branches: [ master ]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: "Version tag to release (e.g. v1.2.0)"
-        required: true
 
 permissions:
   contents: write
@@ -16,9 +16,42 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
+    # Skip the bump-commit's own push so this doesn't loop forever.
+    if: ${{ github.event.head_commit.author.username != 'github-actions[bot]' }}
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump patch version
+        id: bump
+        shell: bash
+        run: |
+          CURRENT=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
+
+          node -e "
+            const fs = require('fs');
+            const path = './src-tauri/tauri.conf.json';
+            const conf = JSON.parse(fs.readFileSync(path, 'utf8'));
+            conf.version = '$NEW_VERSION';
+            fs.writeFileSync(path, JSON.stringify(conf, null, 2) + '\n');
+          "
+
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and tag
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src-tauri/tauri.conf.json
+          git commit -m "chore: bump version to v${{ steps.bump.outputs.new_version }} [skip release]"
+          git tag "v${{ steps.bump.outputs.new_version }}"
+          git push origin HEAD:master
+          git push origin "v${{ steps.bump.outputs.new_version }}"
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -35,8 +68,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: ${{ github.event.inputs.tag || github.ref_name }}
-          releaseName: "Ender Client ${{ github.event.inputs.tag || github.ref_name }}"
+          tagName: v${{ steps.bump.outputs.new_version }}
+          releaseName: "Ender Client v${{ steps.bump.outputs.new_version }}"
           releaseBody: "See the assets below to download this version. The launcher will also offer to update itself automatically the next time it's opened."
           releaseDraft: false
           prerelease: false
