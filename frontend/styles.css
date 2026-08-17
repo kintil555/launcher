@@ -89,21 +89,11 @@ html, body {
   transform: translateY(-50%);
 }
 
-/* Leftmost grid column — now holds the account chip, pinned to the window's
-   top-left corner per user request (previously reserved empty purely to
-   balance the grid's width math against .topbar-side-right on the opposite
-   end; the account chip used to live inside .topbar-nav next to Settings/
-   Home, flowing close to the centered toggle instead). */
-.topbar-spacer {
-  position: absolute;
-  left: 22px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-/* Left-hand nav group (Settings, Home) — right-aligned within its 1fr grid
-   column, so it sits close to the centered toggle. Account chip now lives
-   separately in .topbar-spacer, pinned to the window's top-left corner. */
+/* Left-hand nav group (account chip, Settings, Home) — right-aligned within
+   its 1fr grid column, so it sits close to the centered toggle rather than
+   pinned to the far edge of the window. Matches the Blueberry reference's
+   actual DOM order (account chip flows together with Settings/Home as one
+   group before the toggle, not pinned separately to the window edge). */
 .topbar-nav {
   display: flex;
   align-items: center;
