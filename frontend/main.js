@@ -52,6 +52,14 @@ const SPIN_ROLL_MAX = 0.5; // radians of z-axis roll/tilt layered into the spin
 
 let currentSkinSrc = null;
 
+// --- Disable right-click context menu ------------------------------------
+//
+// WebView2 (the engine Tauri uses on Windows) shows its own native context
+// menu (Reload, Back, Inspect, etc.) on right-click by default. This is a
+// packaged desktop app, not a browser page, so that menu never belongs
+// here — suppress it everywhere in the UI.
+document.addEventListener("contextmenu", (e) => e.preventDefault());
+
 // --- Window chrome (custom titlebar) -------------------------------------
 
 const appWindow = getCurrentWindow();
