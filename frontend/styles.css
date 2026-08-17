@@ -54,16 +54,17 @@ html, body {
 
 .topbar {
   display: grid;
-  /* 4th column reserves the .window-controls' actual rendered width (2×32px
-     buttons + 2px gap = 66px) so the grid's own column math is symmetric
-     left-to-right — padding-right:96px here previously made the grid's
-     content box asymmetric (22px left vs 96px right), so the "auto" middle
-     column (the toggle) centered correctly WITHIN that skewed box but not
-     on the window's true visual center. The window-controls element itself
-     stays position:absolute (falls into this 4th column via DOM order/
-     auto-placement, but renders nothing visible in it since it's out of
-     flow) — this column exists purely to balance the width calculation. */
-  grid-template-columns: 66px 1fr auto 1fr 66px;
+  /* Column 1 (brand/account chip) is now content-width ("auto") to fit the
+     chip like Blueberry Client's reference .brand column, instead of a
+     fixed 66px that was too narrow for chip+avatar+name and forced it out
+     of flow into position:absolute (which visually overlapped .topbar-nav
+     -- reverted, see ender-launcher project notes). Column 5's width is
+     set to match column 1's actual rendered width via --topbar-side-w
+     (measured in JS, syncTopbarBrandColumn in main.js) so both sides stay
+     symmetric and the "auto" middle column (the toggle) stays centered on
+     the window's true visual center regardless of the chip's content
+     width (e.g. long Discord display names). */
+  grid-template-columns: auto 1fr auto 1fr var(--topbar-side-w, 66px);
   align-items: center;
   height: 64px;
   min-height: 64px;
@@ -89,11 +90,18 @@ html, body {
   transform: translateY(-50%);
 }
 
-/* Left-hand nav group (account chip, Settings, Home) — right-aligned within
-   its 1fr grid column, so it sits close to the centered toggle rather than
-   pinned to the far edge of the window. Matches the Blueberry reference's
-   actual DOM order (account chip flows together with Settings/Home as one
-   group before the toggle, not pinned separately to the window edge). */
+/* Brand/account-chip column — grid item like Blueberry's .brand, sized to
+   its content ("auto" track) instead of pinned off-flow. Vertically
+   centered like every other topbar column. */
+.topbar-spacer {
+  display: flex;
+  align-items: center;
+}
+
+/* Left-hand nav group (Settings, Home) — right-aligned within its 1fr grid
+   column, so it sits close to the centered toggle rather than pinned to
+   the far edge of the window. Account chip now lives in its own grid
+   column (.topbar-spacer) to its left. */
 .topbar-nav {
   display: flex;
   align-items: center;

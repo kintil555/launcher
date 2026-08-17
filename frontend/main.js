@@ -647,12 +647,14 @@ async function init() {
       resizeHeadRenderer();
       resizeBodyViewer();
       resizeSkinsPreviewViewer();
+      syncTopbarBrandColumn();
     });
 
     window.addEventListener("resize", () => {
       resizeHeadRenderer();
       resizeBodyViewer();
       resizeSkinsPreviewViewer();
+      syncTopbarBrandColumn();
     });
   } catch (err) {
     console.error("init() failed:", err);
@@ -1123,6 +1125,26 @@ function initHeadRenderer() {
   resizeHeadRenderer();
 }
 
+// The topbar grid's first column (account chip, "auto"-sized) and last
+// column (window-controls, mirrored via --topbar-side-w) must render at
+// identical widths, or the "auto" middle column (the Release/Custom
+// toggle) drifts off the window's true center. CSS alone can't express
+// "match this other column's content width" for two unrelated grid
+// tracks, so measure column 1's actual rendered width here and mirror it
+// onto column 5 via a custom property. Called on init, on window resize,
+// and whenever the chip's content changes (sign in/out changes the name
+// text's width).
+function syncTopbarBrandColumn() {
+  const brand = document.getElementById("topbar-brand");
+  if (!brand) return;
+  const width = brand.getBoundingClientRect().width;
+  // Window-controls' own rendered width (2×32px buttons + 2px gap) is the
+  // floor -- never let the mirrored column shrink smaller than the buttons
+  // it needs to hold, even if the chip somehow measured narrower.
+  const finalWidth = Math.max(width, 66);
+  document.documentElement.style.setProperty("--topbar-side-w", `${finalWidth}px`);
+}
+
 // Sizes and positions a model canvas as an explicit pixel square derived from
 // the live .model-stage box, then returns the resulting rect. Bypassing
 // CSS %/aspect-ratio here guarantees the box getBoundingClientRect() reports
@@ -1560,6 +1582,12 @@ function renderAccountChip() {
       avatarEl.innerHTML = fallbackSvg;
       closeMenu();
     }
+
+    // Chip content width just changed (name/avatar swapped) -- the topbar
+    // grid's brand column is content-sized ("auto"), so re-measure it and
+    // re-sync the mirrored width on the window-controls column, or the
+    // Release/Custom toggle drifts off center again.
+    requestAnimationFrame(syncTopbarBrandColumn);
   }
 
   syncUI();
