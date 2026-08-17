@@ -26,6 +26,7 @@ base64 = "0.22"
 open = "5"
 urlencoding = "2"
 tokio = { version = "1", features = ["rt", "sync"] }
+notify = "6"
 windows = { version = "0.58", features = [
     "Win32_Foundation",
     "Win32_System_Threading",

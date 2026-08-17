@@ -1,4 +1,6 @@
+use notify::{RecursiveMode, Watcher};
 use std::process::Command;
+use std::sync::mpsc;
 use std::time::{Duration, Instant};
 use windows::core::PCWSTR;
 use windows::Win32::Foundation::{CloseHandle, HWND};
@@ -36,9 +38,19 @@ pub fn launch(client_dll_paths: &[String]) -> Result<(), String> {
         return inject_all(pid, client_dll_paths);
     }
 
+    // Start watching for the "menu_load_lock" file deletion *before* activating the
+    // game — this is the same signal Flarial Launcher's Minecraft.Bootstrap.cs waits
+    // on: the UWP build drops a `*menu_load_lock` file under
+    // %APPDATA%\Minecraft Bedrock\Users while the main menu is still loading and
+    // deletes it the moment the menu is actually ready. That's a much more precise
+    // "safe to inject" signal than "the window class exists", which can fire while
+    // the process is still mid-initialization. Set up first so no delete event that
+    // happens to land right after activate() gets missed.
+    let lock_watch = watch_for_menu_load_ready();
+
     activate(&info)?;
 
-    let pid = wait_for_game_window(LAUNCH_TIMEOUT)
+    let pid = wait_for_game_ready(LAUNCH_TIMEOUT, lock_watch)
         .ok_or_else(|| "Minecraft did not start within the expected time.".to_string())?;
 
     let _ = process_name_no_ext; // kept for parity with the locator's process_name field
@@ -153,13 +165,85 @@ fn activate(info: &MinecraftPackageInfo) -> Result<(), String> {
     Ok(())
 }
 
-/// Waits until the game's main window (class "Bedrock") exists, and returns the owning
-/// process id. A fixed delay after "process exists" is not enough — the UWP app
-/// container can take a variable amount of time to finish initializing, and injecting
-/// too early can silently fail. Polling for the actual window is the reliable signal.
-fn wait_for_game_window(timeout: Duration) -> Option<u32> {
+/// Sets up a filesystem watcher on `%APPDATA%\Minecraft Bedrock\Users` (recursive) and
+/// returns a receiver that gets a message the moment any `*menu_load_lock` file is
+/// deleted anywhere under it — the signal used by `wait_for_game_ready` below. Returns
+/// `None` if the watcher can't be set up (folder doesn't exist yet on a fresh install,
+/// OS watch limits, etc.) so the caller can fall back to plain window polling instead of
+/// failing the whole launch over a missing optimization.
+fn watch_for_menu_load_ready() -> Option<mpsc::Receiver<()>> {
+    let appdata = std::env::var("APPDATA").ok()?;
+    let users_dir = std::path::PathBuf::from(appdata).join("Minecraft Bedrock").join("Users");
+
+    // Nothing to watch yet (e.g. Minecraft has never been launched on this machine) —
+    // the caller's polling fallback handles this case instead.
+    if !users_dir.exists() {
+        return None;
+    }
+
+    let (tx, rx) = mpsc::channel();
+
+    let mut watcher = notify::recommended_watcher(move |res: notify::Result<notify::Event>| {
+        let Ok(event) = res else { return };
+        if !matches!(event.kind, notify::EventKind::Remove(_)) {
+            return;
+        }
+        let hit = event
+            .paths
+            .iter()
+            .any(|p| p.file_name().and_then(|n| n.to_str()).map(|n| n.ends_with("menu_load_lock")).unwrap_or(false));
+        if hit {
+            let _ = tx.send(());
+        }
+    })
+    .ok()?;
+
+    watcher.watch(&users_dir, RecursiveMode::Recursive).ok()?;
+
+    // Leak the watcher so it keeps running for the rest of this launch attempt instead
+    // of being dropped (and stopping) when this function returns — matches the
+    // short-lived, one-shot nature of a single launch() call.
+    std::mem::forget(watcher);
+
+    Some(rx)
+}
+
+/// Waits for Minecraft to be ready for injection, preferring the precise
+/// menu_load_lock-deleted signal from `lock_watch` (see watch_for_menu_load_ready) and
+/// falling back to polling for the game window if that signal doesn't arrive — either
+/// because the watcher couldn't be set up, or because a sideloaded/non-Store build
+/// doesn't use the same lock-file lifecycle (mirrors Flarial Launcher's own
+/// IsSideloaded fallback to window-polling for that case). Returns the game's PID.
+fn wait_for_game_ready(timeout: Duration, lock_watch: Option<mpsc::Receiver<()>>) -> Option<u32> {
     let deadline = Instant::now() + timeout;
 
+    if let Some(rx) = lock_watch {
+        // Race the precise signal against the window appearing anyway, polling
+        // lightly in between — covers both "lock file never appears for this
+        // install" and "window somehow exists before the lock file is deleted".
+        while Instant::now() < deadline {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            let wait_slice = remaining.min(POLL_INTERVAL);
+
+            if rx.recv_timeout(wait_slice).is_ok() {
+                // Menu finished loading — the window should exist by now or within
+                // an instant; a couple of quick retries covers that tiny gap.
+                for _ in 0..5 {
+                    if let Some(pid) = find_window_pid() {
+                        return Some(pid);
+                    }
+                    std::thread::sleep(Duration::from_millis(50));
+                }
+            }
+
+            if let Some(pid) = find_window_pid() {
+                return Some(pid);
+            }
+        }
+        return None;
+    }
+
+    // No watcher available — same polling loop as before.
     while Instant::now() < deadline {
         if let Some(pid) = find_window_pid() {
             return Some(pid);
