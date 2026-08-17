@@ -237,6 +237,7 @@ html, body {
 }
 
 .icon-button {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -250,6 +251,19 @@ html, body {
   flex-shrink: 0;
   transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
 }
+
+.update-dot {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+.update-dot.hidden { display: none; }
 
 .icon-button:hover { background: var(--surface); color: var(--fg); }
 .icon-button.active { background: var(--surface); color: var(--accent); border-color: var(--surface-border); }

@@ -143,8 +143,24 @@ async function checkAllExtensionUpdates() {
 }
 
 // --- Launcher self-update ---------------------------------------------
+//
+// Pattern: check silently on startup -> if available, download in the
+// background with no UI at all -> once the download is done, show a small
+// non-blocking toast so the user can restart on their own time (or it just
+// applies on next natural relaunch). No "checking..." spinner, no modal,
+// no interruption to whatever the user is doing. Matches how Discord/VS
+// Code/Chrome handle it.
 
-let pendingUpdate = null;
+let readyUpdate = null;
+
+function showUpdateToast(version) {
+  document.getElementById("update-toast-version").textContent =
+    `Version ${version} was downloaded and is ready to install.`;
+  document.getElementById("update-toast").classList.remove("hidden");
+  // Titlebar dot as a fallback signal in case the toast gets dismissed —
+  // the user can still find the pending update from settings/titlebar.
+  document.getElementById("update-dot")?.classList.remove("hidden");
+}
 
 async function checkAppUpdate() {
   try {
@@ -153,41 +169,53 @@ async function checkAppUpdate() {
 
     // Defensive check against a known upstream regression where check()
     // sometimes returns available:true with the same version as what's
-    // already running (tauri-apps/plugins-workspace#2998). Skip the toast
-    // if the "update" isn't actually newer.
+    // already running (tauri-apps/plugins-workspace#2998). Skip if the
+    // "update" isn't actually newer.
     const currentVersion = await getVersion().catch(() => null);
     if (currentVersion && update.version === currentVersion) return;
 
-    pendingUpdate = update;
-
-    document.getElementById("update-toast-version").textContent =
-      `Version ${update.version} is ready to install.`;
-    document.getElementById("update-toast").classList.remove("hidden");
+    // Download immediately, silently, in the background. No toast yet —
+    // the user shouldn't be interrupted just because a download started.
+    await update.downloadAndInstall((event) => {
+      // downloadAndInstall on Windows (nsis) downloads the installer and
+      // then runs it silently/passively per the "passive" installMode in
+      // tauri.conf.json; it does not relaunch on its own, so the app stays
+      // usable until the user chooses to restart.
+      if (event.event === "Finished") {
+        readyUpdate = update;
+        showUpdateToast(update.version);
+      }
+    });
   } catch (err) {
     // Non-fatal — no network, endpoint unreachable, etc. Just skip silently,
     // the same way checkAllExtensionUpdates() does for its own failures.
-    console.error("update check failed:", err);
+    console.error("update check/download failed:", err);
   }
 }
 
 document.getElementById("update-toast-dismiss").addEventListener("click", () => {
   document.getElementById("update-toast").classList.add("hidden");
+  // Dot stays lit — Later just hides the toast, the update is still ready.
+});
+
+document.getElementById("update-dot")?.addEventListener("click", (e) => {
+  e.stopPropagation(); // don't also trigger the settings-nav-button click underneath
+  if (readyUpdate) document.getElementById("update-toast").classList.remove("hidden");
 });
 
 document.getElementById("update-toast-install").addEventListener("click", async () => {
-  if (!pendingUpdate) return;
+  if (!readyUpdate) return;
 
   const installBtn = document.getElementById("update-toast-install");
   installBtn.disabled = true;
-  installBtn.textContent = "Updating...";
+  installBtn.textContent = "Restarting...";
 
   try {
-    await pendingUpdate.downloadAndInstall();
     await relaunch();
   } catch (err) {
     installBtn.disabled = false;
-    installBtn.textContent = "Update & Restart";
-    console.error("update install failed:", err);
+    installBtn.textContent = "Restart now";
+    console.error("relaunch failed:", err);
   }
 });
 
