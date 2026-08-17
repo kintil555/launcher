@@ -22,9 +22,6 @@ const ACCENT_PRESETS = ["#8B5CF6", "#22C55E", "#3B82F6", "#F97316", "#EC4899", "
 
 let settings = null;
 
-// Body-mode viewer (skinview3d)
-let bodyViewer = null;
-
 // Head-mode viewer (Three.js + glTF)
 let headScene = null;
 let headCamera = null;
@@ -103,7 +100,6 @@ function showPage(pageName) {
   if (pageName === "home") {
     requestAnimationFrame(() => {
       resizeHeadRenderer();
-      resizeBodyViewer();
     });
   }
 }
@@ -477,7 +473,7 @@ function initSkinsPreviewViewer() {
 
   // #page-skins is always laid out now (never display:none — see the CSS
   // comment on #page-skins), so the canvas has real dimensions from app
-  // startup and this can construct synchronously just like initBodyViewer.
+  // startup and this can construct synchronously.
   const canvas = document.getElementById("skin-preview-canvas");
   skinsPreviewViewer = new skinview3d.SkinViewer({
     canvas,
@@ -491,7 +487,7 @@ function initSkinsPreviewViewer() {
   skinsPreviewViewer.controls.enablePan = false;
   skinsPreviewViewer.camera.position.set(0, 0, 60);
   skinsPreviewViewer.zoom = 0.9;
-  // Same sRGB output fix as headRenderer/bodyViewer.
+  // Same sRGB output fix as headRenderer.
   skinsPreviewViewer.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   // Natural shading (unlike Home's fullbright body/head viewers): the skins
@@ -667,7 +663,6 @@ function refreshSettingsUI() {
   syncSourceModeUI();
   renderColorSwatches();
   renderFontSelector();
-  renderModelToggle();
   renderHeadBounceToggle();
   renderHeadBounceSliders();
   renderClientList();
@@ -681,9 +676,7 @@ async function init() {
 
     applyAppearance();
     initHeadRenderer();
-    initBodyViewer();
     initSkinsPreviewViewer();
-    setActiveModelView(settings.model_view, { skipSave: true });
 
     initClientSelectorDropdown();
     refreshSettingsUI();
@@ -708,18 +701,16 @@ async function init() {
 
     // Same zero-size guard as showPage(): on first paint the stage may not
     // have its final layout size yet, so the initial renderer size (set
-    // inside initHeadRenderer/initBodyViewer) can end up 0x0 and render
-    // nothing. Force a resize once the frame has settled.
+    // inside initHeadRenderer) can end up 0x0 and render nothing. Force a
+    // resize once the frame has settled.
     requestAnimationFrame(() => {
       resizeHeadRenderer();
-      resizeBodyViewer();
       resizeSkinsPreviewViewer();
       syncTopbarBrandColumn();
     });
 
     window.addEventListener("resize", () => {
       resizeHeadRenderer();
-      resizeBodyViewer();
       resizeSkinsPreviewViewer();
       syncTopbarBrandColumn();
     });
@@ -747,11 +738,6 @@ async function loadActiveSkin() {
     currentSkinSrc = "assets/steve_default.png";
   }
 
-  if (bodyViewer) {
-    bodyViewer
-      .loadSkin(currentSkinSrc)
-      .then(() => forceFullbright(bodyViewer.playerObject, currentSkinSrc));
-  }
   applySkinToHeadModel(currentSkinSrc);
 }
 
@@ -830,22 +816,6 @@ function renderFontSelector() {
   select.addEventListener("change", async () => {
     settings.font_family = select.value;
     await saveAppearance();
-  });
-}
-
-function renderModelToggle() {
-  const buttons = document.querySelectorAll("#model-view-toggle .segmented-option");
-
-  buttons.forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.value === settings.model_view);
-
-    btn.addEventListener("click", async () => {
-      if (btn.dataset.value === settings.model_view) return;
-
-      buttons.forEach((b) => b.classList.toggle("active", b === btn));
-      setActiveModelView(btn.dataset.value);
-      await saveAppearance();
-    });
   });
 }
 
@@ -928,26 +898,6 @@ function renderHeadBounceSliders() {
   });
 }
 
-// Switches which viewer is mounted (head glTF vs. full-body skinview3d).
-// Persisting the choice is handled by the caller via saveAppearance().
-function setActiveModelView(view, { skipSave = false } = {}) {
-  settings.model_view = view;
-  void skipSave; // kept for call-site clarity; persistence happens in the caller
-
-  const headCanvas = document.getElementById("head-canvas");
-  const bodyCanvas = document.getElementById("body-canvas");
-
-  if (view === "body") {
-    headCanvas.style.display = "none";
-    bodyCanvas.style.display = "block";
-    resizeBodyViewer();
-  } else {
-    bodyCanvas.style.display = "none";
-    headCanvas.style.display = "block";
-    resizeHeadRenderer();
-  }
-}
-
 // --- Home page: pointer tracking (shared by both viewers) -----------------
 
 // Standard "back out" easing (Penner-style): overshoots past 1.0 before
@@ -995,11 +945,9 @@ function startTrackingLoop() {
   // mouse even when it's over the header, launch button, or other UI
   // outside the stage, not just directly above the canvas.
   const headCanvas = document.getElementById("head-canvas");
-  const bodyCanvas = document.getElementById("body-canvas");
 
   function onPointerMove(e) {
-    const stage = headCanvas.style.display !== "none" ? headCanvas : bodyCanvas;
-    const rect = stage.getBoundingClientRect();
+    const rect = headCanvas.getBoundingClientRect();
     const nx = Math.max(-1, Math.min(1, (e.clientX - rect.left - rect.width / 2) / (rect.width / 2)));
     const ny = Math.max(-1, Math.min(1, (e.clientY - rect.top - rect.height / 2) / (rect.height / 2)));
 
@@ -1058,15 +1006,9 @@ function startTrackingLoop() {
       headRenderer.render(headScene, headCamera);
     }
 
-    if (bodyViewer && homeVisible && document.getElementById("body-canvas").style.display !== "none") {
-      bodyViewer.playerObject.rotation.y = currentYaw + spinOffset;
-      bodyViewer.playerObject.rotation.z = spinRoll;
-      bodyViewer.playerObject.position.y = bounceOffset;
-    }
-
     const skinsVisible = document.getElementById("page-skins").classList.contains("active");
     if (skinsPreviewViewer && skinsVisible) {
-      // Slow constant spin, driven manually just like bodyViewer above —
+      // Slow constant spin, driven manually —
       // skinview3d's own autoRotate rotates the camera (which cameraLight is
       // parented to) rather than the model, and that produced the one-sided
       // dark shading seen in the darkness bug even with cameraLight at 0.
@@ -1079,7 +1021,6 @@ function startTrackingLoop() {
   requestAnimationFrame(tick);
 
   headCanvas.addEventListener("click", triggerHeadSpin);
-  bodyCanvas.addEventListener("click", triggerHeadSpin);
 }
 
 // --- Home page: head viewer (Three.js + glTF) ------------------------------
@@ -1274,56 +1215,6 @@ function applySkinToHeadModel(skinSrc) {
       material.needsUpdate = true;
     }
   });
-}
-
-// --- Home page: body viewer (skinview3d) -----------------------------------
-
-function initBodyViewer() {
-  const canvas = document.getElementById("body-canvas");
-
-  bodyViewer = new skinview3d.SkinViewer({
-    canvas,
-    width: 300,
-    height: 500,
-    skin: "assets/steve_default.png",
-  });
-
-  bodyViewer.background = null;
-  bodyViewer.controls.enableZoom = false;
-  bodyViewer.controls.enableRotate = false;
-  bodyViewer.controls.enablePan = false;
-  bodyViewer.camera.position.set(0, 0, 60);
-  // Zoomed in close, with just enough margin to cover the head-bounce
-  // animation's Y offset — matches the head camera's approach (fill the
-  // frame rather than relying on a bigger window/stage).
-  bodyViewer.zoom = 0.95;
-  // Same sRGB output fix as headRenderer — without it the fullbright
-  // MeshBasicMaterial skin reads noticeably higher-contrast/oversaturated
-  // than intended, since the sRGB-tagged texture ends up treated as linear
-  // on output.
-  bodyViewer.renderer.outputColorSpace = THREE.SRGBColorSpace;
-
-  // Fullbright: ambient-only, no camera point light means no shading/shadow
-  // regardless of the player model's rotation. globalLight/cameraLight tuning
-  // alone isn't enough though — skinview3d's player model uses
-  // MeshStandardMaterial (PBR) internally, which still visibly shades faces
-  // angled away from the light even under ambient-only illumination. See
-  // forceFullbright(), applied right after skin loads below.
-  bodyViewer.globalLight.intensity = 1.0;
-  bodyViewer.cameraLight.intensity = 0.0;
-  forceFullbright(bodyViewer.playerObject, "assets/steve_default.png");
-
-  resizeBodyViewer();
-}
-
-function resizeBodyViewer() {
-  if (!bodyViewer) return;
-
-  const canvas = document.getElementById("body-canvas");
-  const rect = sizeModelCanvas(canvas);
-  if (rect.width === 0 || rect.height === 0) return;
-
-  bodyViewer.setSize(rect.width, rect.height);
 }
 
 // --- Home page: client selector (checklist dropdown, max 2) --------------

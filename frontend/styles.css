@@ -623,8 +623,7 @@ html, body {
   50% { scale: 1.12; }
 }
 
-#head-canvas,
-#body-canvas {
+#head-canvas {
   /* Sized in JS (see sizeModelCanvas in main.js) as an explicit pixel square
      derived from the live .model-stage box. CSS-only sizing (%/aspect-ratio
      on an absolutely-positioned element) proved unreliable across two prior
