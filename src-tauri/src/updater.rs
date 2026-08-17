@@ -2,10 +2,14 @@ use serde::Deserialize;
 use std::path::PathBuf;
 
 const REPO_RELEASES_URL: &str = "https://api.github.com/repos/kintil555/Latite/releases";
-const REPO_RELEASE_BY_TAG_URL: &str = "https://api.github.com/repos/kintil555/Latite/releases/tags";
+const REPO_LATEST_RELEASE_URL: &str = "https://api.github.com/repos/kintil555/Latite/releases/latest";
 
-const LATITE_TAG: &str = "nightly";
-const LATITE_DLL_NAME: &str = "LatiteNightly.dll";
+// GitHub's "latest" release endpoint always resolves to the newest release
+// that is NOT marked pre-release/draft — that's exactly the stable v2.x
+// builds (e.g. v2.0.1), which is what the launcher should be fetching.
+// ("Latite Debug" builds are marked pre-release on purpose and are
+// deliberately skipped by /releases/latest.)
+const LATITE_DLL_NAME: &str = "Latite.dll";
 
 // JoD ships as its own always-on, single-module build (JumpOnDamage only,
 // no GUI) — a separate DLL the user can add alongside their main client.
@@ -24,11 +28,9 @@ struct GhAsset {
 #[derive(Deserialize)]
 struct GhRelease {
     tag_name: String,
-    // GitHub bumps this every time the release (and its assets) are
-    // recreated — nightly-build.yml deletes + recreates the "nightly"
-    // release on every push, so a changed published_at means a new build.
-    // For tagged JoD releases this simply changes when a new jod-vX.Y.Z
-    // release is published.
+    // GitHub bumps this every time a release's assets are replaced (e.g. a
+    // new v2.x build is published under a new tag) — a changed published_at
+    // means a new build the launcher hasn't downloaded yet.
     published_at: String,
     assets: Vec<GhAsset>,
 }
@@ -41,9 +43,9 @@ fn dll_out_path(launcher_directory: &str, dll_name: &str) -> PathBuf {
     PathBuf::from(launcher_directory).join(dll_name)
 }
 
-async fn fetch_release_by_tag(client: &reqwest::Client, tag: &str) -> Result<GhRelease, String> {
+async fn fetch_latest_release(client: &reqwest::Client) -> Result<GhRelease, String> {
     client
-        .get(format!("{REPO_RELEASE_BY_TAG_URL}/{tag}"))
+        .get(REPO_LATEST_RELEASE_URL)
         .send()
         .await
         .map_err(|e| e.to_string())?
@@ -126,12 +128,13 @@ fn http_client() -> Result<reqwest::Client, String> {
         .map_err(|e| e.to_string())
 }
 
-/// Fetches the main Latite client build. No-ops if already up to date.
+/// Fetches the main Latite client build (the newest non-pre-release GitHub
+/// Release, e.g. v2.0.1). No-ops if already up to date.
 #[tauri::command]
 pub async fn fetch_latest_latite(launcher_directory: String) -> Result<String, String> {
     let client = http_client()?;
-    let release = fetch_release_by_tag(&client, LATITE_TAG).await?;
-    download_if_new(&client, &launcher_directory, "latite_nightly", LATITE_DLL_NAME, &release).await
+    let release = fetch_latest_release(&client).await?;
+    download_if_new(&client, &launcher_directory, "latite_stable", LATITE_DLL_NAME, &release).await
 }
 
 /// Fetches the JoD (Jump on Damage) extension build. No-ops if already up
