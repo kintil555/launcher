@@ -220,11 +220,13 @@ pub async fn fetch_skin_by_username(username: String) -> Result<SkinEntry, Strin
         .first()
         .ok_or_else(|| "Minecraft's custom_skins folder was not found yet. Launch the game at least once first.".to_string())?;
 
-    // Sanitize: username is validated by Mojang's own lookup succeeding,
-    // but strip anything path-unsafe out of an abundance of caution before
-    // it becomes part of a filename.
-    let safe_name: String = username.chars().filter(|c| c.is_alphanumeric() || *c == '_').collect();
-    let out_path = dir.join(format!("{safe_name}.png"));
+    // Minecraft's own Dressing Room writes custom_skins entries as bare
+    // UUID filenames, and — per testing — deletes any file in that folder
+    // that ISN'T named that way the next time the game launches. A
+    // human-readable name like "Notch.png" gets wiped before the user ever
+    // gets a chance to import it, so the file has to be UUID-named from
+    // the moment it's written, not just cosmetically later.
+    let out_path = dir.join(format!("{}.png", new_uuid_v4()));
     std::fs::write(&out_path, &skin_bytes).map_err(|e| e.to_string())?;
 
     let filename = out_path.file_name().unwrap_or_default().to_string_lossy().to_string();
@@ -250,14 +252,13 @@ pub fn import_skin_file(source_path: String) -> Result<SkinEntry, String> {
         .first()
         .ok_or_else(|| "Minecraft's custom_skins folder was not found yet. Launch the game at least once first.".to_string())?;
 
-    let file_name = source
-        .file_name()
-        .ok_or_else(|| "Selected file has no name.".to_string())?;
-
-    // If a skin with this exact filename already exists, don't silently
-    // overwrite it — append " (2)", " (3)", etc. until we find a name that's
-    // free, the same way Windows Explorer handles a copy/paste collision.
-    let out_path = unique_destination(dir, file_name);
+    // Same reasoning as fetch_skin_by_username: Minecraft deletes any
+    // custom_skins entry that isn't named as a bare UUID the next time it
+    // launches, so the copy has to land under a UUID name, not the
+    // original filename (which is also how "Add as new skin" duplicates
+    // an already-imported skin under a fresh identity Minecraft hasn't
+    // seen yet, rather than colliding with it).
+    let out_path = dir.join(format!("{}.png", new_uuid_v4()));
 
     std::fs::copy(&source, &out_path).map_err(|e| e.to_string())?;
 
@@ -270,38 +271,25 @@ pub fn import_skin_file(source_path: String) -> Result<SkinEntry, String> {
     })
 }
 
-/// Returns `dir/file_name`, or if that path already exists, `dir/file_name (2)`,
-/// `dir/file_name (3)`, etc. — the first one that doesn't already exist on disk.
-fn unique_destination(dir: &std::path::Path, file_name: &std::ffi::OsStr) -> PathBuf {
-    let candidate = dir.join(file_name);
-    if !candidate.exists() {
-        return candidate;
-    }
+/// Generates a real random UUIDv4 (lowercase, hyphenated) using the `rand`
+/// crate already in use elsewhere in this file — avoids pulling in a whole
+/// separate `uuid` dependency for one call site.
+fn new_uuid_v4() -> String {
+    use rand::RngCore;
+    let mut bytes = [0u8; 16];
+    rand::thread_rng().fill_bytes(&mut bytes);
 
-    let name = std::path::Path::new(file_name);
-    let stem = name.file_stem().and_then(|s| s.to_str()).unwrap_or("skin");
-    let ext = name.extension().and_then(|s| s.to_str());
+    // Version 4, variant 1 per RFC 4122.
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
 
-    for n in 2..1000 {
-        let numbered = match ext {
-            Some(ext) => format!("{stem} ({n}).{ext}"),
-            None => format!("{stem} ({n})"),
-        };
-        let candidate = dir.join(numbered);
-        if !candidate.exists() {
-            return candidate;
-        }
-    }
-
-    // Astronomically unlikely fallback so this always terminates.
-    dir.join(format!("{stem} ({})", uuid_like_suffix()))
-}
-
-fn uuid_like_suffix() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.subsec_nanos())
-        .unwrap_or(0);
-    format!("{nanos}")
+    let hex: Vec<String> = bytes.iter().map(|b| format!("{b:02x}")).collect();
+    format!(
+        "{}{}{}{}-{}{}-{}{}-{}{}-{}{}{}{}{}{}",
+        hex[0], hex[1], hex[2], hex[3],
+        hex[4], hex[5],
+        hex[6], hex[7],
+        hex[8], hex[9],
+        hex[10], hex[11], hex[12], hex[13], hex[14], hex[15]
+    )
 }
