@@ -397,9 +397,7 @@ function renderSkinCard(skin) {
         // this, the 3D preview kept displaying a skin no longer in the
         // list (and no longer on disk) until the user picked another one.
         if (skinsPreviewViewer) {
-          skinsPreviewViewer
-            .loadSkin("assets/steve_default.png")
-            .then(() => forceFullbright(skinsPreviewViewer.playerObject, "assets/steve_default.png"));
+          skinsPreviewViewer.loadSkin("assets/steve_default.png");
         }
       }
       await loadSkinsGrid();
@@ -422,9 +420,7 @@ function selectSkin(skin, cardEl) {
 
   const src = convertFileSrc(skin.path);
   if (skinsPreviewViewer) {
-    skinsPreviewViewer
-      .loadSkin(src)
-      .then(() => forceFullbright(skinsPreviewViewer.playerObject, src));
+    skinsPreviewViewer.loadSkin(src);
   }
 }
 
@@ -487,17 +483,16 @@ function initSkinsPreviewViewer() {
   // Same sRGB output fix as headRenderer/bodyViewer.
   skinsPreviewViewer.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-  // Fullbright: ambient-only, no camera point light means no shading/shadow
-  // regardless of the player model's rotation — same config as bodyViewer,
-  // which never went dark. autoRotate (and OrbitControls' enableRotate) is
-  // deliberately left off here too: skinview3d's autoRotate spins the
-  // camera around the scene rather than the model, and with cameraLight
-  // parented to the camera, a moving camera plus any residual light produced
-  // exactly the one-sided dark shading seen in the bug report. Rotation is
-  // driven manually instead, matching the Home page's eased mouse-follow.
-  skinsPreviewViewer.globalLight.intensity = 1.0;
-  skinsPreviewViewer.cameraLight.intensity = 0.0;
-  forceFullbright(skinsPreviewViewer.playerObject, "assets/steve_default.png");
+  // Natural shading (unlike Home's fullbright body/head viewers): the skins
+  // grid preview spins continuously (see SKINS_PREVIEW_SPIN_SPEED below), so
+  // ambient + a light attached to the camera works well here — cameraLight
+  // moves with the camera, not the model, so as the model rotates under a
+  // stationary camera every side passes through the light in turn instead
+  // of one side staying permanently dark. (This is different from Home's
+  // old autoRotate setup, where the *camera* orbited a fixed light and that
+  // combination produced one-sided dark shading — not the case here.)
+  skinsPreviewViewer.globalLight.intensity = 0.6;
+  skinsPreviewViewer.cameraLight.intensity = 0.9;
 
   resizeSkinsPreviewViewer();
 }
@@ -526,9 +521,7 @@ async function loadSkinsGrid() {
   // loaded into it last (e.g. from before the user switched away from
   // this tab and back).
   if (skinsPreviewViewer) {
-    skinsPreviewViewer
-      .loadSkin("assets/steve_default.png")
-      .then(() => forceFullbright(skinsPreviewViewer.playerObject, "assets/steve_default.png"));
+    skinsPreviewViewer.loadSkin("assets/steve_default.png");
   }
 
   resizeSkinsPreviewViewer();
