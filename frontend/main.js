@@ -338,6 +338,7 @@ document.getElementById("discord-join-button")?.addEventListener("click", () => 
 
 let skinsPreviewViewer = null;
 let selectedSkinPath = null;
+let currentSkinsList = [];
 
 // Draws just the front-face layer (8x8 region at 8,8 in the standard 64x64
 // skin layout) scaled up into a small canvas -- cheap per-card thumbnail
@@ -398,7 +399,8 @@ function renderSkinCard(skin) {
       await invoke("delete_skin", { path: skin.path });
       if (selectedSkinPath === skin.path) {
         selectedSkinPath = null;
-        document.getElementById("skin-apply-button").disabled = true;
+        document.getElementById("skin-add-new-button").disabled = true;
+        document.getElementById("skin-overwrite-button").disabled = true;
         document.getElementById("skin-preview-name").textContent = "Select a skin";
         // Reset the big preview back to a neutral default instead of
         // leaving it showing the skin that was just deleted — without
@@ -424,7 +426,8 @@ function selectSkin(skin, cardEl) {
   selectedSkinPath = skin.path;
 
   document.getElementById("skin-preview-name").textContent = skin.filename.replace(/\.png$/i, "");
-  document.getElementById("skin-apply-button").disabled = false;
+  document.getElementById("skin-add-new-button").disabled = false;
+  document.getElementById("skin-overwrite-button").disabled = false;
 
   const src = convertFileSrc(skin.path);
   if (skinsPreviewViewer) {
@@ -522,7 +525,8 @@ async function loadSkinsGrid() {
   statusEl.textContent = "";
   gridEl.innerHTML = "";
   selectedSkinPath = null;
-  document.getElementById("skin-apply-button").disabled = true;
+  document.getElementById("skin-add-new-button").disabled = true;
+  document.getElementById("skin-overwrite-button").disabled = true;
   document.getElementById("skin-preview-name").textContent = "Select a skin";
 
   // Same reasoning as the delete handler: nothing is selected at this
@@ -543,11 +547,13 @@ async function loadSkinsGrid() {
     return;
   }
 
+  currentSkinsList = [];
   if (skinsList.length === 0) {
     statusEl.textContent = "No skins found in custom_skins yet.";
     return;
   }
 
+  currentSkinsList = skinsList;
   for (const skin of skinsList) {
     gridEl.appendChild(renderSkinCard(skin));
   }
@@ -577,18 +583,79 @@ document.getElementById("skin-username-input")?.addEventListener("keydown", (e) 
   if (e.key === "Enter") document.getElementById("skin-fetch-button")?.click();
 });
 
-document.getElementById("skin-apply-button")?.addEventListener("click", async () => {
+document.getElementById("skin-add-new-button")?.addEventListener("click", async () => {
   if (!selectedSkinPath) return;
   const statusEl = document.getElementById("skins-status");
   try {
-    await invoke("set_active_skin", { path: selectedSkinPath });
-    statusEl.textContent = "Applied. Your Home page skin will update.";
-    // Home page's active-skin display reads whichever file has the newest
-    // mtime; refresh it now so switching back to Home shows it immediately.
-    await loadActiveSkin();
+    // import_skin_file just copies bytes to a fresh unique filename inside
+    // custom_skins -- the source doesn't have to be outside the folder, so
+    // this doubles as "duplicate this skin under a new name Minecraft has
+    // never seen," which is exactly what's needed here.
+    await invoke("import_skin_file", { sourcePath: selectedSkinPath });
+    statusEl.textContent = "Added. Open Minecraft's Dressing Room > Import to equip it.";
+    await loadSkinsGrid();
   } catch (err) {
     statusEl.textContent = err;
   }
+});
+
+document.getElementById("skin-overwrite-button")?.addEventListener("click", () => {
+  if (!selectedSkinPath) return;
+
+  const overlay = document.getElementById("overwrite-target-overlay");
+  const listEl = document.getElementById("overwrite-target-list");
+  listEl.innerHTML = "";
+
+  const targets = currentSkinsList.filter((s) => s.is_imported && s.path !== selectedSkinPath);
+
+  if (targets.length === 0) {
+    listEl.innerHTML = '<p class="overwrite-target-empty">No imported skins found yet. Import at least one skin in Minecraft\'s Dressing Room first, then come back here to overwrite it.</p>';
+  } else {
+    for (const target of targets) {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "overwrite-target-row";
+
+      const thumb = document.createElement("canvas");
+      thumb.width = 32;
+      thumb.height = 32;
+      const img = new Image();
+      img.onload = () => drawSkinFaceThumbnail(thumb, img);
+      img.src = convertFileSrc(target.path);
+
+      const label = document.createElement("span");
+      label.textContent = target.filename.replace(/\.png$/i, "");
+
+      row.appendChild(thumb);
+      row.appendChild(label);
+
+      row.addEventListener("click", async () => {
+        const statusEl = document.getElementById("skins-status");
+        row.disabled = true;
+        try {
+          await invoke("overwrite_skin", { targetPath: target.path, sourcePath: selectedSkinPath });
+          statusEl.textContent = "Overwritten. Restart Minecraft to see the change.";
+          overlay.classList.add("hidden");
+          await loadSkinsGrid();
+        } catch (err) {
+          statusEl.textContent = err;
+          row.disabled = false;
+        }
+      });
+
+      listEl.appendChild(row);
+    }
+  }
+
+  overlay.classList.remove("hidden");
+});
+
+document.getElementById("overwrite-target-cancel-button")?.addEventListener("click", () => {
+  document.getElementById("overwrite-target-overlay").classList.add("hidden");
+});
+
+document.getElementById("overwrite-target-overlay")?.addEventListener("click", (e) => {
+  if (e.target.id === "overwrite-target-overlay") e.target.classList.add("hidden");
 });
 
 

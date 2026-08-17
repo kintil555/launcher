@@ -261,7 +261,7 @@ pub fn run() {
             discord_login,
             discord_logout,
             skins::list_custom_skins,
-            skins::set_active_skin,
+            skins::overwrite_skin,
             skins::fetch_skin_by_username,
             skins::import_skin_file,
             skins::delete_skin,

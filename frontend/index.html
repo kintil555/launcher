@@ -142,7 +142,9 @@
           <div class="skins-preview-pane">
             <canvas id="skin-preview-canvas"></canvas>
             <p id="skin-preview-name" class="skin-preview-name">Select a skin</p>
-            <button id="skin-apply-button" class="btn-primary skin-apply-button" disabled>Set as active skin</button>
+            <button id="skin-add-new-button" class="btn-primary skin-apply-button" disabled>Add as new skin</button>
+            <button id="skin-overwrite-button" class="btn-secondary skin-apply-button" disabled>Overwrite existing...</button>
+            <p class="skin-apply-hint">Minecraft only recognizes a skin once it's imported through Dressing Room &gt; Import. "Add as new" drops the file in for you to import there. "Overwrite existing" replaces the picture of a skin you already imported, so it updates without importing again.</p>
           </div>
         </div>
       </section>
@@ -273,6 +275,17 @@
       <div class="confirm-actions">
         <button id="delete-data-cancel-button" class="btn-secondary">Cancel</button>
         <button id="delete-data-confirm-button" class="btn-danger">Delete everything</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confirm-overlay hidden" id="overwrite-target-overlay">
+    <div class="confirm-card">
+      <p class="confirm-title">Overwrite which imported skin?</p>
+      <p class="confirm-body">Only skins already imported through Minecraft's Dressing Room can be overwritten. Pick one below — its picture changes to the selected skin, no re-import needed.</p>
+      <div id="overwrite-target-list" class="overwrite-target-list"></div>
+      <div class="confirm-actions">
+        <button id="overwrite-target-cancel-button" class="btn-secondary">Cancel</button>
       </div>
     </div>
   </div>

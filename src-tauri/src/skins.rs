@@ -8,6 +8,22 @@ use crate::minecraft::custom_skins_dirs;
 pub struct SkinEntry {
     pub filename: String,
     pub path: String,
+    /// True when the filename is a bare UUID (Minecraft's own naming for a
+    /// skin actually imported through the Dressing Room). Only these are
+    /// valid overwrite targets -- overwriting one changes what an
+    /// already-equipped skin looks like on next game launch. Skins the
+    /// launcher itself wrote (fetched by username, uploaded from disk) use
+    /// human-readable names and were never registered with Minecraft, so
+    /// overwriting them would do nothing.
+    pub is_imported: bool,
+}
+
+fn is_uuid_filename(filename: &str) -> bool {
+    let stem = filename.strip_suffix(".png").or_else(|| filename.strip_suffix(".PNG")).unwrap_or(filename);
+    let parts: Vec<&str> = stem.split('-').collect();
+    parts.len() == 5
+        && [8, 4, 4, 4, 12] == parts.iter().map(|p| p.len()).collect::<Vec<_>>()[..]
+        && parts.iter().all(|p| p.chars().all(|c| c.is_ascii_hexdigit()))
 }
 
 /// Lists every PNG across all custom_skins folder candidates (per-account
@@ -37,24 +53,45 @@ pub fn list_custom_skins() -> Result<Vec<SkinEntry>, String> {
 
     Ok(entries
         .into_iter()
-        .map(|(_, path)| SkinEntry {
-            filename: path.file_name().unwrap_or_default().to_string_lossy().to_string(),
-            path: path.to_string_lossy().to_string(),
+        .map(|(_, path)| {
+            let filename = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+            let is_imported = is_uuid_filename(&filename);
+            SkinEntry {
+                filename,
+                path: path.to_string_lossy().to_string(),
+                is_imported,
+            }
         })
         .collect())
 }
 
-/// "Activates" a skin already sitting in custom_skins. find_active_skin_path()
-/// returns whichever PNG in the folder has the newest mtime, so activating
-/// means bumping this file's modified time to now (past whatever skin was
-/// previously newest) without touching its bytes.
+/// Overwrites the bytes of an already-imported skin file (one Minecraft's
+/// Dressing Room already knows about, hence its UUID filename) with a
+/// different skin's bytes, keeping the original filename/UUID untouched.
+///
+/// This is the only way to change what a Bedrock player looks like without
+/// re-opening the Dressing Room: Bedrock keeps a persona/skin database
+/// keyed by the skin's UUID (assigned at import time), not by file content
+/// or mtime, so a brand-new file just sits unrecognized until imported by
+/// hand. Reusing an existing UUID's file — with its texture swapped out —
+/// picks up on next launch because the *file* Minecraft already tracks
+/// changed, even though the UUID itself didn't.
 #[tauri::command]
-pub fn set_active_skin(path: String) -> Result<(), String> {
-    let file = std::fs::OpenOptions::new()
-        .write(true)
-        .open(&path)
-        .map_err(|e| e.to_string())?;
-    file.set_modified(std::time::SystemTime::now()).map_err(|e| e.to_string())?;
+pub fn overwrite_skin(target_path: String, source_path: String) -> Result<(), String> {
+    let target = PathBuf::from(&target_path);
+    let source = PathBuf::from(&source_path);
+
+    let dirs = custom_skins_dirs();
+    let in_known_dir = dirs.iter().any(|dir| target.parent() == Some(dir.as_path()));
+    if !in_known_dir {
+        return Err("That file is not in a recognized custom_skins folder.".to_string());
+    }
+    if !source.is_file() {
+        return Err("Source skin file does not exist.".to_string());
+    }
+
+    let bytes = std::fs::read(&source).map_err(|e| e.to_string())?;
+    std::fs::write(&target, &bytes).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -190,9 +227,12 @@ pub async fn fetch_skin_by_username(username: String) -> Result<SkinEntry, Strin
     let out_path = dir.join(format!("{safe_name}.png"));
     std::fs::write(&out_path, &skin_bytes).map_err(|e| e.to_string())?;
 
+    let filename = out_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let is_imported = is_uuid_filename(&filename);
     Ok(SkinEntry {
-        filename: out_path.file_name().unwrap_or_default().to_string_lossy().to_string(),
+        filename,
         path: out_path.to_string_lossy().to_string(),
+        is_imported,
     })
 }
 
@@ -221,9 +261,12 @@ pub fn import_skin_file(source_path: String) -> Result<SkinEntry, String> {
 
     std::fs::copy(&source, &out_path).map_err(|e| e.to_string())?;
 
+    let filename = out_path.file_name().unwrap_or_default().to_string_lossy().to_string();
+    let is_imported = is_uuid_filename(&filename);
     Ok(SkinEntry {
-        filename: out_path.file_name().unwrap_or_default().to_string_lossy().to_string(),
+        filename,
         path: out_path.to_string_lossy().to_string(),
+        is_imported,
     })
 }
 
