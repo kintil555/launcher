@@ -484,15 +484,16 @@ function initSkinsPreviewViewer() {
   skinsPreviewViewer.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   // Natural shading (unlike Home's fullbright body/head viewers): the skins
-  // grid preview spins continuously (see SKINS_PREVIEW_SPIN_SPEED below), so
-  // ambient + a light attached to the camera works well here — cameraLight
-  // moves with the camera, not the model, so as the model rotates under a
-  // stationary camera every side passes through the light in turn instead
-  // of one side staying permanently dark. (This is different from Home's
-  // old autoRotate setup, where the *camera* orbited a fixed light and that
-  // combination produced one-sided dark shading — not the case here.)
-  skinsPreviewViewer.globalLight.intensity = 0.6;
-  skinsPreviewViewer.cameraLight.intensity = 0.9;
+  // grid preview spins continuously (see SKINS_PREVIEW_SPIN_SPEED below).
+  // skinview3d's light intensities are on a PBR scale, not 0-1 — its own
+  // defaults are globalLight=3 (ambient) / cameraLight=0.6 (point light
+  // attached to the camera). Keep ambient dominant (close to default) so no
+  // side goes dark as the model rotates under the stationary camera, with a
+  // touch of cameraLight for definition rather than the 0.6/0.9 split tried
+  // earlier, which was far below the library's own ambient default and
+  // rendered near-black.
+  skinsPreviewViewer.globalLight.intensity = 2.5;
+  skinsPreviewViewer.cameraLight.intensity = 0.6;
 
   resizeSkinsPreviewViewer();
 }
